@@ -1,183 +1,212 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MEAL DEAL - SYNTHESIS PROTOCOL</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <title>The Initiative | 2026 Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        body {
+        /* 这里是 CSS 样式区 
+           目的是制造“过度的整洁感”
+        */
+        :root {
+            --bg-color: #FAFAFA; /* 极其干净的浅灰白 */
+            --text-color: #2C2C2C; /* 深灰，不是纯黑，显得高级 */
+            --accent-color: #00D664; /* 令人安心的“伪善绿” */
+            --border-color: #E0E0E0;
+        }
+
+        * {
             margin: 0;
             padding: 0;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Courier New', Courier, monospace;
-        }
-        canvas { display: block; }
-
-        /* 全局 UI 容器 */
-        #ui-layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none; /* 让鼠标穿透到 Canvas */
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-end;
-            padding: 20px;
             box-sizing: border-box;
         }
 
-        /* 底部合成台 */
-        #synthesis-table {
-            pointer-events: auto;
-            background: rgba(10, 10, 10, 0.95);
-            border: 1px solid #444;
-            display: flex;
-            gap: 20px;
-            padding: 20px;
-            max-width: 900px;
-            margin: 0 auto; /* 居中 */
-            box-shadow: 0 0 20px rgba(0,0,0,0.8);
-            border-top: 2px solid #fff;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            overflow-x: hidden; /* 禁止横向滚动 */
         }
 
-        /* 菜单区域 (三列) */
-        .menu-section {
+        /* 导航栏：极简，只有Logo和汉堡菜单 */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 2rem 4rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            background: rgba(250, 250, 250, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            border-bottom: 1px solid transparent;
+            transition: border-color 0.3s;
+        }
+
+        nav:hover {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            font-size: 1.2rem;
+        }
+
+        .menu-icon {
+            width: 30px;
+            height: 2px;
+            background: var(--text-color);
+            position: relative;
+        }
+        .menu-icon::before, .menu-icon::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 2px;
+            background: var(--text-color);
+            left: 0;
+        }
+        .menu-icon::before { top: -8px; }
+        .menu-icon::after { top: 8px; }
+
+        /* Hero 区域：巨大的留白，空洞的口号 */
+        .hero {
+            height: 100vh;
             display: flex;
             flex-direction: column;
-            gap: 5px;
-            flex: 1;
-        }
-
-        .section-header {
-            color: #888;
-            font-size: 10px;
-            border-bottom: 1px solid #333;
-            margin-bottom: 5px;
-            padding-bottom: 2px;
-            text-transform: uppercase;
-        }
-
-        /* 具体的选项按钮 */
-        .option-btn {
-            background: transparent;
-            border: 1px solid #333;
-            color: #666;
-            padding: 6px 10px;
-            font-family: 'Courier New', monospace;
-            font-size: 11px;
-            cursor: pointer;
-            text-align: left;
-            transition: all 0.2s;
-        }
-        .option-btn:hover {
-            border-color: #999;
-            color: #fff;
-            background: rgba(255,255,255,0.1);
-        }
-        .option-btn.selected {
-            background: #fff;
-            color: #000;
-            border-color: #fff;
-            font-weight: bold;
-        }
-
-        /* 结果展示区 (三个槽位) */
-        #tray-display {
-            display: flex;
-            gap: 10px;
-            border-left: 1px solid #444;
-            padding-left: 20px;
-            align-items: center;
-        }
-
-        .slot {
-            width: 80px;
-            height: 80px;
-            border: 1px dashed #555;
-            display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             text-align: center;
-            font-size: 10px;
-            color: #444;
-            flex-direction: column;
-            padding: 5px;
+            padding: 0 2rem;
+        }
+
+        h1 {
+            font-size: 5rem;
+            font-weight: 300; /* 细字体显得轻盈、无害 */
+            letter-spacing: -2px;
+            margin-bottom: 1.5rem;
+            max-width: 800px;
+        }
+
+        h1 span {
+            color: var(--accent-color);
+            font-style: italic; /* 强调词 */
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #888;
+            max-width: 600px;
+            margin-bottom: 3rem;
+        }
+
+        .btn {
+            padding: 1rem 2.5rem;
+            border: 1px solid var(--text-color);
+            background: transparent;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 50px; /* 圆角显得更柔和 */
+        }
+
+        .btn:hover {
+            background: var(--text-color);
+            color: var(--bg-color);
+        }
+
+        /* 数据展示区：干净得不真实的饼图 */
+        .data-section {
+            padding: 8rem 4rem;
+            background: #FFFFFF;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 4rem;
+            align-items: center;
+        }
+
+        .chart-container {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--accent-color) 0% 98%, 
+                #E0E0E0 98% 100%
+            ); /* 一个几乎全满的饼图，暗示“完美” */
+            margin: 0 auto;
+            position: relative;
+        }
+
+        .chart-container::after {
+            content: "98%";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .text-block h2 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            margin-bottom: 1rem;
         }
         
-        .slot.filled {
-            border: 1px solid #fff;
-            color: #fff;
-            background: #111;
-            box-shadow: 0 0 10px rgba(255,255,255,0.2);
-        }
-
-        .slot-label {
-            font-size: 9px;
+        .text-block p {
             color: #666;
-            margin-bottom: 4px;
+            margin-bottom: 2rem;
         }
 
-        /* 重置按钮 */
-        #reset-btn {
-            margin-top: 10px;
-            width: 100%;
-            background: #200;
-            border: 1px solid #500;
-            color: #f88;
-            padding: 8px;
+        /* 隐藏的开关/彩蛋区 (为后续做铺垫) */
+        .toggle-reality {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            font-size: 0.8rem;
+            opacity: 0.3;
             cursor: pointer;
         }
-        #reset-btn:hover { background: #400; color: #fff; }
+        
+        .toggle-reality:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
 
     </style>
 </head>
 <body>
-    <div id="ui-layer">
-        <div id="synthesis-table">
-            <div class="menu-section">
-                <div class="section-header">/// RULE A (PHYSICS)</div>
-                <button class="option-btn" onclick="selectItem('A', 0)">SWARM</button>
-                <button class="option-btn" onclick="selectItem('A', 2)">ORBITAL</button>
-                <button class="option-btn" onclick="selectItem('A', 6)">GRID_RUN</button>
-                <button class="option-btn" onclick="selectItem('A', 10)">NEBULA</button>
-            </div>
 
-            <div class="menu-section">
-                <div class="section-header">/// RULE B (STRUCTURE)</div>
-                <button class="option-btn" onclick="selectItem('B', 5)">SLIT_SCAN</button>
-                <button class="option-btn" onclick="selectItem('B', 4)">BLUEPRINT</button>
-                <button class="option-btn" onclick="selectItem('B', 7)">RADIAL</button>
-                <button class="option-btn" onclick="selectItem('B', 8)">BINARY</button>
-            </div>
+    <nav>
+        <div class="logo">UAL / Net Zero Strategy</div>
+        <div class="menu-icon"></div>
+    </nav>
 
-            <div class="menu-section">
-                <div class="section-header">/// ELEMENT 1 (TEXTURE)</div>
-                <button class="option-btn" onclick="selectItem('C', 1)">HARMONICS</button>
-                <button class="option-btn" onclick="selectItem('C', 3)">TRI_MESH</button>
-                <button class="option-btn" onclick="selectItem('C', 9)">NOISE_SKY</button>
-            </div>
+    <section class="hero">
+        <h1>Towards a <br><span>Seamless</span> Future.</h1>
+        <p class="subtitle">Optimizing data streams for a sustainable tomorrow. Measuring the unmeasurable with 100% transparency.</p>
+        <button class="btn">Read the Report</button>
+    </section>
 
-            <div id="tray-display">
-                <div id="slot-A" class="slot">
-                    <span class="slot-label">RULE A</span>
-                    <span class="content">EMPTY</span>
-                </div>
-                <div id="slot-B" class="slot">
-                    <span class="slot-label">RULE B</span>
-                    <span class="content">EMPTY</span>
-                </div>
-                <div id="slot-C" class="slot">
-                    <span class="slot-label">ELEM 1</span>
-                    <span class="content">EMPTY</span>
-                </div>
-            </div>
+    <section class="data-section">
+        <div class="text-block">
+            <h2>Quantified Purity</h2>
+            <p>Our latest environmental audit reveals a near-perfect optimization of resource allocation. By visualizing the intangible, we ensure a cleaner digital footprint for everyone.</p>
+            <p style="font-size: 0.9rem; color: #999;">*Data collected from selected proxies.</p>
         </div>
+        <div class="chart-container"></div>
+    </section>
+
+    <div class="toggle-reality" title="Click to see the mess">
+        [ Debug: View Raw Data ]
     </div>
-    
-    <script src="sketch.js"></script>
+
 </body>
 </html>
