@@ -3,116 +3,223 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Initiative | 2026 Report</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <title>Twin Narratives | UAL Net Zero</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
     <style>
-        /* CSS 样式部分 (保持不变) */
-        :root { --bg-color: #FAFAFA; --text-color: #2C2C2C; --accent-color: #00D664; --border-color: #E0E0E0; }
+        :root {
+            --left-bg: #F4F4F0; /* 暖白，像纸张 */
+            --left-text: #1A1A1A;
+            --right-bg: #000000;
+            --right-text: #00FF41; /* 终端绿 */
+            --handle-color: #FF3333;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; overflow-x: hidden; transition: all 0.5s ease; /* 添加过渡动画 */ }
-        nav { display: flex; justify-content: space-between; align-items: center; padding: 2rem 4rem; position: fixed; width: 100%; top: 0; background: rgba(250, 250, 250, 0.95); backdrop-filter: blur(10px); z-index: 100; transition: all 0.5s ease; }
-        .logo { font-weight: 600; letter-spacing: -0.5px; font-size: 1.2rem; }
-        .menu-icon { width: 30px; height: 2px; background: var(--text-color); position: relative; }
-        .menu-icon::before, .menu-icon::after { content: ''; position: absolute; width: 30px; height: 2px; background: var(--text-color); left: 0; }
-        .menu-icon::before { top: -8px; }
-        .menu-icon::after { top: 8px; }
-        .hero { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 2rem; }
-        h1 { font-size: 5rem; font-weight: 300; letter-spacing: -2px; margin-bottom: 1.5rem; max-width: 800px; transition: all 0.2s; }
-        h1 span { color: var(--accent-color); font-style: italic; }
-        .subtitle { font-size: 1.2rem; color: #888; max-width: 600px; margin-bottom: 3rem; }
-        .btn { padding: 1rem 2.5rem; border: 1px solid var(--text-color); background: transparent; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease; border-radius: 50px; }
-        .btn:hover { background: var(--text-color); color: var(--bg-color); }
-        .data-section { padding: 8rem 4rem; background: #FFFFFF; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; transition: all 0.5s ease; }
-        .chart-container { width: 300px; height: 300px; border-radius: 50%; background: conic-gradient(var(--accent-color) 0% 98%, #E0E0E0 98% 100%); margin: 0 auto; position: relative; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
-        .chart-container::after { content: "98%"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: 600; color: var(--text-color); }
-        .text-block h2 { font-size: 2.5rem; font-weight: 300; margin-bottom: 1rem; }
-        .text-block p { color: #666; margin-bottom: 2rem; }
-        .toggle-reality { position: fixed; bottom: 2rem; right: 2rem; font-size: 0.8rem; opacity: 0.3; cursor: pointer; border: 1px solid #ccc; padding: 5px 10px; z-index: 1000; background: white; }
-        .toggle-reality:hover { opacity: 1; text-decoration: underline; background: #eee; }
+        
+        body {
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* 禁止滚动，全屏体验 */
+        }
+
+        /* 容器 */
+        .container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* 通用层样式 */
+        .layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+        }
+
+        /* --- 左侧：官方叙事 (The Ideal) --- */
+        .layer-left {
+            background-color: var(--left-bg);
+            color: var(--left-text);
+            z-index: 1; /* 在底层 */
+            font-family: 'Playfair Display', serif; /* 优雅字体 */
+        }
+
+        .layer-left h1 {
+            font-size: 6vw;
+            font-weight: 400;
+            line-height: 1.1;
+            margin-bottom: 2rem;
+        }
+
+        .layer-left p {
+            font-size: 1.2rem;
+            max-width: 500px;
+            font-style: italic;
+            opacity: 0.8;
+            border-left: 2px solid var(--left-text);
+            padding-left: 20px;
+        }
+
+        .clean-badge {
+            margin-top: 3rem;
+            border: 1px solid var(--left-text);
+            padding: 10px 30px;
+            border-radius: 50px;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+        }
+
+        /* --- 右侧：垃圾真相 (The Reality) --- */
+        .layer-right {
+            background-color: var(--right-bg);
+            color: var(--right-text);
+            z-index: 2; /* 在顶层 */
+            width: 50%; /* 初始宽度 */
+            border-right: 3px solid var(--handle-color); /* 分割线 */
+            font-family: 'Space Mono', monospace; /* 代码字体 */
+        }
+
+        /* 关键：让右侧内容固定宽度，不要随容器收缩而挤压 */
+        .content-wrap {
+            width: 100vw; /* 强制内容宽度为全屏 */
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 4rem;
+            position: absolute;
+            left: 0;
+            top: 0;
+            /* 制造一点视觉错位，显得更具破坏性 */
+            background-image: linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        .layer-right h1 {
+            font-size: 6vw;
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 2rem;
+            text-transform: uppercase;
+            text-shadow: 2px 2px 0px #FF3333; /* 故障红阴影 */
+        }
+
+        .layer-right p {
+            font-size: 1.2rem;
+            max-width: 500px;
+            background: var(--right-text);
+            color: black;
+            padding: 10px;
+        }
+
+        /* 拖拽手柄 */
+        .handle {
+            position: absolute;
+            top: 50%;
+            left: 50%; /* JS 会动态改变这个值 */
+            transform: translate(-50%, -50%);
+            width: 50px;
+            height: 50px;
+            background: var(--handle-color);
+            border-radius: 50%;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: ew-resize; /* 左右拖拽光标 */
+            box-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
+            pointer-events: none; /* 让鼠标事件穿透给 wrapper */
+        }
+
+        .handle::after {
+            content: '< >';
+            color: white;
+            font-family: monospace;
+            font-weight: bold;
+        }
+
+        /* 移动端的提示 */
+        .mobile-tip {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #888;
+            font-size: 0.8rem;
+            z-index: 100;
+            pointer-events: none;
+            mix-blend-mode: difference;
+        }
+
     </style>
 </head>
 <body>
 
-    <nav>
-        <div class="logo">UAL / Net Zero Strategy</div>
-        <div class="menu-icon"></div>
-    </nav>
-
-    <section class="hero">
-        <h1>Towards a <br><span>Seamless</span> Future.</h1>
-        <p class="subtitle">Optimizing data streams for a sustainable tomorrow. Measuring the unmeasurable with 100% transparency.</p>
-        <button class="btn">Read the Report</button>
-    </section>
-
-    <section class="data-section">
-        <div class="text-block">
-            <h2>Quantified Purity</h2>
-            <p>Our latest environmental audit reveals a near-perfect optimization of resource allocation. By visualizing the intangible, we ensure a cleaner digital footprint for everyone.</p>
-            <p style="font-size: 0.9rem; color: #999;">*Data collected from selected proxies.</p>
+    <div class="container" id="container">
+        
+        <div class="layer layer-left">
+            <h1>Sustainable<br>Tomorrow</h1>
+            <p>"We are committed to achieving Net Zero by optimizing our digital infrastructure and reducing our carbon footprint through innovative proxies."</p>
+            <div class="clean-badge">UAL Strategy 2026</div>
         </div>
-        <div class="chart-container"></div>
-    </section>
 
-    <div class="toggle-reality" title="Click to see the mess">
-        [ Debug: View Raw Data ]
+        <div class="layer layer-right" id="topLayer">
+            <div class="content-wrap">
+                <h1>Unmeasured<br>Wasteland</h1>
+                <p>ERROR: 80% OF DATA IS UNTRACKED. <br> YOUR CLOUD IS A LANDFILL.</p>
+                <div style="margin-top: 2rem; border: 1px solid var(--right-text); padding: 10px;">
+                    PROXY_FAILED // E-WASTE OVERFLOW
+                </div>
+            </div>
+        </div>
+
+        <div class="handle" id="handle"></div>
+        
+        <div class="mobile-tip">DRAG TO REVEAL</div>
+
     </div>
 
     <script>
-        const realityToggle = document.querySelector('.toggle-reality');
-        const body = document.body;
-        const heroTitle = document.querySelector('h1');
-        const subtitle = document.querySelector('.subtitle');
-        const chart = document.querySelector('.chart-container');
-        const nav = document.querySelector('nav');
-        const dataSection = document.querySelector('.data-section');
+        const container = document.getElementById('container');
+        const topLayer = document.getElementById('topLayer');
+        const handle = document.getElementById('handle');
 
-        const glitchTexts = [
-            "ERROR: DATA OVERFLOW", "404: REALITY NOT FOUND", 
-            "UNMEASURED WASTE DETECTED", "SYSTEM FAILURE",
-            "TOXIC LEAKAGE", "010101010101"
-        ];
-
-        realityToggle.addEventListener('click', function() {
+        // 监听鼠标移动
+        container.addEventListener('mousemove', function(e) {
+            // 计算鼠标位置在屏幕宽度的百分比
+            let percentage = (e.clientX / window.innerWidth) * 100;
             
-            // 1. 改变整体色调
-            body.style.backgroundColor = "#1a1a1a"; 
-            body.style.color = "#00ff00"; 
-            body.style.fontFamily = "'Courier New', Courier, monospace"; 
+            // 限制范围，不让它完全消失 (可选)
+            // if (percentage < 5) percentage = 5;
+            // if (percentage > 95) percentage = 95;
+
+            // 改变顶层 (右侧) 的宽度
+            // 注意：因为我想让右侧在左边，左侧在右边，或者反过来
+            // 这里我们改变的是覆盖层的宽度
+            topLayer.style.width = percentage + '%';
             
-            // 2. 破坏区域背景
-            dataSection.style.backgroundColor = "#220000"; // 变成深红
+            // 移动手柄位置
+            handle.style.left = percentage + '%';
+        });
 
-            // 3. 破坏导航栏
-            nav.style.transform = "skewY(5deg)";
-            nav.style.background = "red";
-            nav.querySelector('.logo').innerText = "FATAL ERROR // WASTE DUMP";
-
-            // 4. 替换大标题
-            heroTitle.innerHTML = "THE <span style='color:red; background:white;'>MESS</span><br>IS HERE.";
-            
-            // 5. 替换副标题
-            subtitle.innerText = "Processing 8.5 million tons of unmeasured e-waste... Graphics rendering failed.";
-            subtitle.style.color = "red";
-
-            // 6. 让饼图变形
-            chart.style.borderRadius = "10%"; 
-            chart.style.background = "repeating-linear-gradient(45deg, yellow, yellow 10px, black 10px, black 20px)"; 
-            
-            // 7. 生成满屏的弹幕垃圾
-            setInterval(function(){
-                let garbage = document.createElement('div');
-                garbage.innerText = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
-                garbage.style.position = 'absolute';
-                garbage.style.top = Math.random() * 100 + 'vh';
-                garbage.style.left = Math.random() * 100 + 'vw';
-                garbage.style.color = Math.random() > 0.5 ? 'red' : 'white';
-                garbage.style.fontSize = Math.random() * 3 + 'rem';
-                garbage.style.zIndex = '999';
-                garbage.style.pointerEvents = 'none';
-                body.appendChild(garbage);
-            }, 100); // 每0.1秒生成一个垃圾文字
-
-            realityToggle.innerText = "[ CRITICAL FAILURE ]";
+        // 兼容手机触摸
+        container.addEventListener('touchmove', function(e) {
+            let touch = e.touches[0];
+            let percentage = (touch.clientX / window.innerWidth) * 100;
+            topLayer.style.width = percentage + '%';
+            handle.style.left = percentage + '%';
         });
     </script>
 </body>
