@@ -1,226 +1,505 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twin Narratives | UAL Net Zero</title>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    
+    <title>ENTROPY ARCHIVE | 熵增档案馆</title>
     <style>
+        /* --- 0. 基础设置与变量 --- */
         :root {
-            --left-bg: #F4F4F0; /* 暖白，像纸张 */
-            --left-text: #1A1A1A;
-            --right-bg: #000000;
-            --right-text: #00FF41; /* 终端绿 */
-            --handle-color: #FF3333;
+            --bg-color: #F4F4F4;
+            --ink-color: #111111;
+            --accent-color: #333333;
+            --grid-col: 1fr 120px 120px 80px;
+            --font-sans: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            --font-serif: 'Georgia', 'Times New Roman', serif;
+            --transition-speed: 0.8s;
+            --transition-ease: cubic-bezier(0.25, 1, 0.5, 1);
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        *, *::before, *::after { box-sizing: border-box; }
+
         body {
-            height: 100vh;
-            width: 100vw;
-            overflow: hidden; /* 禁止滚动，全屏体验 */
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--ink-color);
+            font-family: var(--font-sans);
+            overflow-x: hidden;
+            /* 噪点背景 */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.05'/%3E%3C/svg%3E");
+            transition: background-color 0.5s;
         }
 
-        /* 容器 */
-        .container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* 通用层样式 */
-        .layer {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 4rem;
-        }
-
-        /* --- 左侧：官方叙事 (The Ideal) --- */
-        .layer-left {
-            background-color: var(--left-bg);
-            color: var(--left-text);
-            z-index: 1; /* 在底层 */
-            font-family: 'Playfair Display', serif; /* 优雅字体 */
-        }
-
-        .layer-left h1 {
-            font-size: 6vw;
-            font-weight: 400;
-            line-height: 1.1;
-            margin-bottom: 2rem;
-        }
-
-        .layer-left p {
-            font-size: 1.2rem;
-            max-width: 500px;
-            font-style: italic;
-            opacity: 0.8;
-            border-left: 2px solid var(--left-text);
-            padding-left: 20px;
-        }
-
-        .clean-badge {
-            margin-top: 3rem;
-            border: 1px solid var(--left-text);
-            padding: 10px 30px;
-            border-radius: 50px;
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            letter-spacing: 2px;
-        }
-
-        /* --- 右侧：垃圾真相 (The Reality) --- */
-        .layer-right {
-            background-color: var(--right-bg);
-            color: var(--right-text);
-            z-index: 2; /* 在顶层 */
-            width: 50%; /* 初始宽度 */
-            border-right: 3px solid var(--handle-color); /* 分割线 */
-            font-family: 'Space Mono', monospace; /* 代码字体 */
-        }
-
-        /* 关键：让右侧内容固定宽度，不要随容器收缩而挤压 */
-        .content-wrap {
-            width: 100vw; /* 强制内容宽度为全屏 */
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 4rem;
-            position: absolute;
-            left: 0;
-            top: 0;
-            /* 制造一点视觉错位，显得更具破坏性 */
-            background-image: linear-gradient(rgba(0, 255, 65, 0.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(0, 255, 65, 0.05) 1px, transparent 1px);
-            background-size: 20px 20px;
-        }
-
-        .layer-right h1 {
-            font-size: 6vw;
-            font-weight: 700;
-            line-height: 1.1;
-            margin-bottom: 2rem;
-            text-transform: uppercase;
-            text-shadow: 2px 2px 0px #FF3333; /* 故障红阴影 */
-        }
-
-        .layer-right p {
-            font-size: 1.2rem;
-            max-width: 500px;
-            background: var(--right-text);
-            color: black;
-            padding: 10px;
-        }
-
-        /* 拖拽手柄 */
-        .handle {
-            position: absolute;
-            top: 50%;
-            left: 50%; /* JS 会动态改变这个值 */
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            background: var(--handle-color);
-            border-radius: 50%;
-            z-index: 10;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: ew-resize; /* 左右拖拽光标 */
-            box-shadow: 0 0 20px rgba(255, 51, 51, 0.5);
-            pointer-events: none; /* 让鼠标事件穿透给 wrapper */
-        }
-
-        .handle::after {
-            content: '< >';
-            color: white;
-            font-family: monospace;
-            font-weight: bold;
-        }
-
-        /* 移动端的提示 */
-        .mobile-tip {
+        /* --- 1. UI 控制面板 (Sticky) --- */
+        header {
             position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #888;
-            font-size: 0.8rem;
-            z-index: 100;
+            top: 20px;
+            left: 20px;
+            width: 300px;
+            background: rgba(244, 244, 244, 0.9);
+            backdrop-filter: blur(5px);
+            border: 1px solid var(--ink-color);
+            padding: 15px;
+            z-index: 1000;
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 10px;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin: 0;
+        }
+
+        button#toggleMode {
+            background: var(--ink-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 5px 10px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.2s;
+        }
+
+        button#toggleMode:hover {
+            background: #444;
+            transform: translateY(-1px);
+        }
+
+        .metrics {
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+
+        .metric-row {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .energy-bar-container {
+            width: 100%;
+            height: 4px;
+            background: #ddd;
+            margin-top: 5px;
+            position: relative;
+        }
+
+        .energy-bar-fill {
+            height: 100%;
+            background: var(--ink-color);
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .waste-log {
+            margin-top: 10px;
+            border-top: 1px dashed #999;
+            padding-top: 5px;
+            font-style: italic;
+            color: #555;
+            min-height: 1.5em;
+        }
+
+        /* --- 2. 列表容器 --- */
+        #archive-container {
+            padding: 120px 40px 40px 340px; /*留出左上角header空间*/
+            min-height: 100vh;
+            position: relative;
+            /* 3D透视，为垃圾场模式做准备 */
+            perspective: 1000px; 
+        }
+
+        /* 列表表头 - 仅在图书馆模式显示 */
+        .list-header {
+            display: grid;
+            grid-template-columns: var(--grid-col);
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--ink-color);
+            margin-bottom: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+        /* --- 3. 条目样式 (Item) --- */
+        .item {
+            position: relative;
+            background: var(--bg-color);
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 13px;
+            height: 40px;
+            display: grid;
+            grid-template-columns: var(--grid-col);
+            align-items: center;
+            transition: 
+                transform var(--transition-speed) var(--transition-ease),
+                box-shadow var(--transition-speed) var(--transition-ease),
+                border var(--transition-speed) var(--transition-ease),
+                background var(--transition-speed);
+            transform-origin: center center;
+            will-change: transform;
+        }
+
+        .item:hover {
+            background: #fff;
+        }
+
+        .item span {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 10px;
+        }
+
+        .col-id { font-family: 'Courier New', monospace; color: #666; }
+        .col-title { font-family: var(--font-serif); letter-spacing: 0.5px; }
+        .col-type { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .col-size { text-align: right; font-family: monospace; }
+
+        /* --- 4. 垃圾场模式 (Waste Mode) --- */
+        body.mode-waste {
+            background-color: #E8E8E8; /* 略微变脏 */
+            overflow-y: auto; /* 允许滚动 */
+        }
+
+        body.mode-waste .list-header {
+            opacity: 0;
             pointer-events: none;
-            mix-blend-mode: difference;
+        }
+
+        /* 垃圾场模式下的条目变形 */
+        body.mode-waste .item {
+            /* 核心：覆盖Grid布局，变成绝对定位堆叠 */
+            display: flex; 
+            flex-direction: column;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 10px;
+            height: auto;
+            width: 200px; /* 卡片化 */
+            border: 1px solid var(--ink-color);
+            background: #fff;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.15);
+            
+            /* 位置将由 JS 动态注入 CSS var 控制 */
+            position: absolute; 
+            left: 50%; /* 居中堆叠 */
+            top: 200px; /* 起始堆叠点 */
+            
+            /* 应用预计算的混沌变换 */
+            transform: 
+                translate(var(--waste-x), var(--waste-y)) 
+                rotate(var(--waste-r)) 
+                scale(var(--waste-s));
+            
+            z-index: var(--z-index);
+        }
+        
+        body.mode-waste .item span {
+            display: block;
+            width: 100%;
+            margin-bottom: 4px;
+        }
+        
+        body.mode-waste .col-title {
+            font-weight: bold;
+            font-size: 14px;
+            white-space: normal;
+        }
+
+        /* --- 5. 实体化垃圾 (Mapping Objects) --- */
+        /* 这些是特殊的 item，只有在达到能耗阈值时生成 */
+        .item.physical-waste {
+            background: var(--ink-color);
+            color: var(--bg-color);
+            border: none;
+        }
+        
+        .item.physical-waste .col-id { color: #888; }
+
+        /* 加载指示器 */
+        .loader {
+            text-align: center;
+            padding: 20px;
+            font-family: monospace;
+            opacity: 0.5;
         }
 
     </style>
 </head>
 <body>
 
-    <div class="container" id="container">
-        
-        <div class="layer layer-left">
-            <h1>Sustainable<br>Tomorrow</h1>
-            <p>"We are committed to achieving Net Zero by optimizing our digital infrastructure and reducing our carbon footprint through innovative proxies."</p>
-            <div class="clean-badge">UAL Strategy 2026</div>
+    <header>
+        <div class="panel-header">
+            <h1>Energy Auditor v1.0</h1>
+            <button id="toggleMode">Switch View</button>
         </div>
-
-        <div class="layer layer-right" id="topLayer">
-            <div class="content-wrap">
-                <h1>Unmeasured<br>Wasteland</h1>
-                <p>ERROR: 80% OF DATA IS UNTRACKED. <br> YOUR CLOUD IS A LANDFILL.</p>
-                <div style="margin-top: 2rem; border: 1px solid var(--right-text); padding: 10px;">
-                    PROXY_FAILED // E-WASTE OVERFLOW
-                </div>
+        <div class="metrics">
+            <div class="metric-row">
+                <span>SESSION TIME:</span>
+                <span id="timeDisplay">00:00</span>
+            </div>
+            <div class="metric-row">
+                <span>SCROLL DIST:</span>
+                <span id="scrollDisplay">0 px</span>
+            </div>
+            <div class="metric-row">
+                <span>EST. POWER:</span>
+                <span id="powerDisplay">0 W</span>
+            </div>
+            <div class="metric-row" style="margin-top:10px; font-weight:bold;">
+                <span>TOTAL ENERGY:</span>
+                <span id="energyDisplay">0.0000 Wh</span>
+            </div>
+            <div class="energy-bar-container">
+                <div class="energy-bar-fill" id="energyBar"></div>
+            </div>
+            <div class="waste-log" id="wasteLog">
+                System initializing...
             </div>
         </div>
+    </header>
 
-        <div class="handle" id="handle"></div>
-        
-        <div class="mobile-tip">DRAG TO REVEAL</div>
-
+    <div id="archive-container">
+        <div class="list-header">
+            <span>Entry Title / Description</span>
+            <span>Ref. ID</span>
+            <span>Category</span>
+            <span>Size</span>
+        </div>
+        <div id="items-wrapper"></div>
+        <div class="loader">Loading Data Fragments...</div>
     </div>
 
-    <script>
-        const container = document.getElementById('container');
-        const topLayer = document.getElementById('topLayer');
-        const handle = document.getElementById('handle');
+<script>
+/**
+ * 创意技术核心逻辑
+ * 1. DataGenerator: 生成虚构的档案数据
+ * 2. EnergySystem: 物理能耗估算
+ * 3. Renderer: DOM 操作与模式切换
+ */
 
-        // 监听鼠标移动
-        container.addEventListener('mousemove', function(e) {
-            // 计算鼠标位置在屏幕宽度的百分比
-            let percentage = (e.clientX / window.innerWidth) * 100;
-            
-            // 限制范围，不让它完全消失 (可选)
-            // if (percentage < 5) percentage = 5;
-            // if (percentage > 95) percentage = 95;
+// --- 配置参数 ---
+const CONFIG = {
+    basePower: 15, // 基础功率 (Watts) - 模拟屏幕+CPU待机
+    scrollFactor: 0.5, // 滚动阻力系数 (Watts per px/ms)
+    domCost: 0.05, // 每个DOM节点的额外渲染功率
+    thresholds: [
+        { val: 0.005, name: "LED Blink", icon: "♦" },
+        { val: 0.1, name: "Google Search", icon: "G" },
+        { val: 1.0, name: "Light Bulb (1h)", icon: "💡" },
+        { val: 5.0, name: "Smartphone Charge", icon: "📱" },
+        { val: 150.0, name: "Boil Kettle", icon: "♨️" }
+    ]
+};
 
-            // 改变顶层 (右侧) 的宽度
-            // 注意：因为我想让右侧在左边，左侧在右边，或者反过来
-            // 这里我们改变的是覆盖层的宽度
-            topLayer.style.width = percentage + '%';
-            
-            // 移动手柄位置
-            handle.style.left = percentage + '%';
-        });
+// --- 状态管理 ---
+const state = {
+    mode: 'library', // 'library' or 'waste'
+    startTime: Date.now(),
+    lastFrameTime: Date.now(),
+    totalEnergy: 0, // Joules
+    scrollDistance: 0,
+    lastScrollY: 0,
+    itemCount: 0,
+    wasteObjects: [] // 记录已生成的垃圾对象
+};
 
-        // 兼容手机触摸
-        container.addEventListener('touchmove', function(e) {
-            let touch = e.touches[0];
-            let percentage = (touch.clientX / window.innerWidth) * 100;
-            topLayer.style.width = percentage + '%';
-            handle.style.left = percentage + '%';
-        });
-    </script>
+// --- 1. 数据生成器 (Mock Data) ---
+const words = ["Entropy", "Decay", "Archive", "System", "Vector", "Null", "Reference", "Grid", "Signal", "Noise", "Structure", "Chaos", "Memory", "Cache", "Fragment", "Index"];
+const types = ["DOC", "IMG", "WAV", "DAT", "LOG", "ERR"];
+
+function generateItemData(index) {
+    const title = `${words[Math.floor(Math.random()*words.length)]} ${words[Math.floor(Math.random()*words.length)]} ${Math.floor(Math.random()*99)}`;
+    const id = `REF-${10000 + index}`;
+    const type = types[Math.floor(Math.random()*types.length)];
+    const size = `${(Math.random() * 5).toFixed(2)} MB`;
+    
+    // 预计算垃圾场模式下的坐标 (Deterministic Chaos)
+    // 这样切换模式时，它们总是飞到同一个乱糟糟的地方
+    const randomX = (Math.random() - 0.5) * 800; // 水平散布
+    const randomY = index * 10 + (Math.random() - 0.5) * 100; // 垂直散布，随index增加往下
+    const randomR = (Math.random() - 0.5) * 60; // 旋转角度
+    const randomS = 0.8 + Math.random() * 0.4; // 缩放
+    
+    return { title, id, type, size, randomX, randomY, randomR, randomS, index };
+}
+
+// --- 2. 渲染引擎 ---
+const itemsWrapper = document.getElementById('items-wrapper');
+const toggleBtn = document.getElementById('toggleMode');
+const wasteLog = document.getElementById('wasteLog');
+
+function createDOMItem(data, isSpecial = false) {
+    const el = document.createElement('div');
+    el.className = isSpecial ? 'item physical-waste' : 'item';
+    
+    // 设置 CSS 变量用于垃圾场模式的变换
+    el.style.setProperty('--waste-x', `${data.randomX}px`);
+    // 在垃圾模式下，我们将所有的 top 设为 relative to a stack center，这里我们用 translateY 模拟
+    // 为了让它们在 library 模式下正常，我们在 CSS 里默认是 grid
+    // 这里的 waste-y 是相对于堆叠起点的偏移
+    el.style.setProperty('--waste-y', `${data.randomY}px`); 
+    el.style.setProperty('--waste-r', `${data.randomR}deg`);
+    el.style.setProperty('--waste-s', `${data.randomS}`);
+    el.style.setProperty('--z-index', Math.floor(Math.random() * 100));
+
+    // 内部结构
+    el.innerHTML = `
+        <span class="col-title">${data.title}</span>
+        <span class="col-id">${data.id}</span>
+        <span class="col-type">${data.type}</span>
+        <span class="col-size">${data.size}</span>
+    `;
+    
+    return el;
+}
+
+function appendItems(count) {
+    const fragment = document.createDocumentFragment();
+    for (let i = 0; i < count; i++) {
+        const data = generateItemData(state.itemCount++);
+        const el = createDOMItem(data);
+        fragment.appendChild(el);
+    }
+    itemsWrapper.appendChild(fragment);
+}
+
+// 初始化先加载50个
+appendItems(50);
+
+// --- 3. 交互与模式切换 ---
+toggleBtn.addEventListener('click', () => {
+    state.mode = state.mode === 'library' ? 'waste' : 'library';
+    document.body.classList.toggle('mode-waste');
+    
+    if(state.mode === 'waste') {
+        toggleBtn.innerText = "Back to Order";
+        wasteLog.innerText = ">> COLLAPSING STRUCTURE...";
+        // 垃圾场模式下，为了看清堆叠，我们需要重置一下容器的高度，或者让body滚动
+    } else {
+        toggleBtn.innerText = "View Entropy";
+        wasteLog.innerText = ">> RESTORING GRID...";
+    }
+});
+
+// --- 4. 无限滚动逻辑 ---
+window.addEventListener('scroll', () => {
+    const scrollTop = window.scrollY;
+    state.scrollDistance += Math.abs(scrollTop - state.lastScrollY);
+    state.lastScrollY = scrollTop;
+
+    // 简单的无限加载检测
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight - 500) {
+        // 限制最大节点数以保护浏览器性能 (模拟内存限制)
+        if (state.itemCount < 500) { 
+            appendItems(20);
+        }
+    }
+});
+
+// --- 5. 核心：能耗系统循环 (Energy Loop) ---
+const els = {
+    time: document.getElementById('timeDisplay'),
+    scroll: document.getElementById('scrollDisplay'),
+    power: document.getElementById('powerDisplay'),
+    energy: document.getElementById('energyDisplay'),
+    bar: document.getElementById('energyBar')
+};
+
+function formatTime(ms) {
+    const s = Math.floor(ms / 1000);
+    const m = Math.floor(s / 60);
+    return `${m.toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+}
+
+function checkThresholds(currentWh) {
+    // 检查是否达到生成“实体垃圾”的阈值
+    CONFIG.thresholds.forEach(t => {
+        if (currentWh >= t.val && !state.wasteObjects.includes(t.name)) {
+            state.wasteObjects.push(t.name);
+            spawnPhysicalWaste(t);
+        }
+    });
+}
+
+function spawnPhysicalWaste(threshold) {
+    // 生成一个特殊的、黑色的、沉重的块
+    const specialData = generateItemData(state.itemCount++);
+    specialData.title = `[WASTE] ${threshold.name.toUpperCase()}`;
+    specialData.type = "CO2";
+    specialData.size = `${threshold.val} Wh`;
+    // 让它更大、更黑
+    specialData.randomS = 1.5; 
+    
+    const el = createDOMItem(specialData, true);
+    
+    // 插入到列表顶部或者随机位置
+    itemsWrapper.appendChild(el);
+    
+    // 更新日志
+    wasteLog.innerText = `>> ALERT: Energy Cost equivalent to ${threshold.name} generated.`;
+    wasteLog.style.color = "red";
+    setTimeout(() => wasteLog.style.color = "#555", 2000);
+}
+
+function updateEnergy() {
+    const now = Date.now();
+    const dt = now - state.lastFrameTime; // 毫秒
+    state.lastFrameTime = now;
+
+    // 1. 计算当前瞬时功率 (Watts)
+    // 基础功率 + 滚动速度带来的功率 + DOM节点压力
+    // 简单的速度计算：最近一帧滚动的距离 / 时间
+    // 为了平滑，我们假设一个衰减
+    const scrollSpeed = Math.abs(state.lastScrollY - (state.prevScrollY || state.lastScrollY)) / (dt || 16); 
+    state.prevScrollY = state.lastScrollY;
+
+    const currentPower = CONFIG.basePower + (scrollSpeed * 100 * CONFIG.scrollFactor) + (state.itemCount * CONFIG.domCost);
+    
+    // 2. 累加能量 (Joules = Watts * Seconds)
+    const joulesDelta = currentPower * (dt / 1000);
+    state.totalEnergy += joulesDelta;
+
+    // 3. 转换为 Wh (1 Wh = 3600 J)
+    const wh = state.totalEnergy / 3600;
+
+    // 4. 更新 UI
+    els.time.innerText = formatTime(now - state.startTime);
+    els.scroll.innerText = `${Math.floor(state.scrollDistance)} px`;
+    els.power.innerText = `${currentPower.toFixed(1)} W`;
+    els.energy.innerText = `${wh.toFixed(4)} Wh`;
+    
+    // 进度条模拟 (假设 10Wh 是满条)
+    els.bar.style.width = `${Math.min((wh / 10) * 100, 100)}%`;
+
+    // 5. 触发物理映射
+    checkThresholds(wh);
+
+    requestAnimationFrame(updateEnergy);
+}
+
+// 启动引擎
+requestAnimationFrame(updateEnergy);
+
+</script>
 </body>
 </html>
