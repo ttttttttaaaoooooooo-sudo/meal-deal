@@ -15,8 +15,8 @@
             --font-mono: 'Courier New', Courier, monospace;
             
             /* 废土模式变量 */
-            --waste-bg: #111;
-            --waste-text: #EEE;
+            --waste-bg: #050505;
+            --waste-text: #AAA;
             --waste-accent: #FF3333;
         }
 
@@ -158,69 +158,58 @@
         body.mode-waste .btn-toggle {
             background: #eee; color: #000;
         }
+        
+        body.mode-waste .energy-monitor { color: #777; }
+        body.mode-waste .monitor-val { color: #eee; }
 
+        /* 文字崩塌效果 */
         body.mode-waste .data-row {
             background: transparent;
             border-bottom: none;
-            color: #555;
+            color: #444;
             transform: translate(var(--rand-x, 0px), var(--rand-y, 0px)) rotate(var(--rand-r, 0deg));
-            opacity: 0.5;
-            pointer-events: none;
+            opacity: 0.3;
+            pointer-events: none; /* 崩塌后不可点击 */
         }
 
-        /* --- 5. 垃圾物品 (核心修复) --- */
+        /* --- 5. 垃圾物品 (Unsplash Images) --- */
         .waste-item {
             position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            background: #222; /* 默认黑色背景，防止图片没加载时透明 */
-            border: 1px solid rgba(255,255,255,0.3);
-            box-shadow: 10px 10px 40px rgba(0,0,0,0.8);
+            background: #111; /* 图片未加载时的背景 */
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 10px 10px 40px rgba(0,0,0,0.9);
             
             /* 初始动画 */
             opacity: 0;
             transform: scale(0.5) translateY(-50px);
-            animation: trashDrop 0.5s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            animation: trashDrop 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 50; 
         }
 
-        /* 图片样式：强制黑白、高对比 */
         .waste-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            /* 核心：即使图片是普通的，这个滤镜也会让它看起来像垃圾/复印件 */
-            filter: grayscale(100%) contrast(150%) brightness(0.9) sepia(20%); 
-            transition: opacity 0.3s;
-        }
-
-        /* 如果图片挂了，显示的文字 */
-        .waste-fallback-text {
-            position: absolute;
-            color: #555;
-            font-family: var(--font-mono);
-            font-size: 10px;
-            text-align: center;
-            padding: 5px;
-            width: 100%;
-            word-break: break-all;
-            display: none; /* 默认隐藏，JS控制显示 */
+            /* 关键：强制黑白高对比度滤镜，模拟废土感 */
+            filter: grayscale(100%) contrast(150%) brightness(0.8);
+            transition: opacity 0.5s;
         }
         
-        /* 垃圾上的标签 */
         .waste-label {
             position: absolute;
-            bottom: 5px;
-            right: 5px;
+            bottom: 0;
+            right: 0;
             background: #000;
             color: #FFF;
-            padding: 2px 6px;
+            padding: 2px 4px;
             font-family: var(--font-mono);
             font-size: 9px;
-            border: 1px solid #FFF;
-            pointer-events: none;
+            border-top: 1px solid #FFF;
+            border-left: 1px solid #FFF;
         }
 
         @keyframes trashDrop {
@@ -275,8 +264,8 @@
         <div class="empty-intro" id="introText">
             [ARCHIVE PROTOCOL]<br><br>
             SCROLL TO EXPLORE INSTITUTIONAL DATA.<br>
-            EVERY INTERACTION CONSUMES ENERGY.<br>
-            SWITCH MODE TO VISUALIZE THE PHYSICAL IMPACT.
+            EVERY PIXEL SCROLLED CONSUMES ENERGY.<br>
+            SWITCH MODE TO VISUALIZE THE PHYSICAL COST.
         </div>
         <div id="archive-list"></div>
         <div class="loading-sentinel" id="sentinel">LOADING DATA...</div>
@@ -294,20 +283,34 @@
         {"name": "Cooling System PUE 1.6", "emission": 0, "unit": "Ratio", "notes": "Inefficiency overhead"}
     ];
 
-    // --- 1. 配置 ---
+    // --- 1. 精选 UNSPLASH 图片库 (硬编码 ID，保证稳定) ---
+    // 这些图片涵盖：电子垃圾、塑料瓶、故障纹理、工业废墟、电线
+    const UNSPLASH_GALLERY = [
+        "1611284446314-60a58ac0deb9", // E-waste pile
+        "1530587191325-3db32d826c18", // Plastic bottle
+        "1591405351990-4726e331f141", // Circuit board
+        "1518709268805-4e9042af9f23", // Pipes and wires
+        "1482160549825-59d1b23cb208", // Broken screen/glitch
+        "1542204165-65bf26472b9b",    // Static noise
+        "1621451537084-482c73073a0f", // Plastic waste
+        "1550989460-0adf9ea622e2",    // Hardware closeup
+        "1569245588325-412f8541c6d3", // Glitch text
+        "1526951521990-620dc14c214b"  // Electronic components
+    ];
+
+    // --- 2. 配置 ---
     const CONFIG = {
         baseCostPerSec: 0.05,
-        scrollCostPerPx: 0.001,
+        scrollCostPerPx: 0.002,
         dataRenderCost: 0.01,
         
-        // 映射表：关键词使用了更广泛的词汇以确保图片库有结果
+        // 映射逻辑：达到一定能耗，随机抽取一张图片
         mapping: [
-            { threshold: 0.5, name: "LED BLINK", keywords: "lightbulb,electricity", scale: 0.6 },
-            { threshold: 1.5, name: "PLASTIC WASTE", keywords: "plastic,trash", scale: 0.8 },
-            { threshold: 3.0, name: "E-WASTE", keywords: "circuit,wires,computer", scale: 1.0 },
-            { threshold: 6.0, name: "METAL SCRAP", keywords: "metal,rust,industry", scale: 1.2 },
-            { threshold: 12.0, name: "SERVER DUMP", keywords: "server,technology,cyberpunk", scale: 1.5 },
-            { threshold: 25.0, name: "HEAVY INDUSTRY", keywords: "factory,smoke,pollution", scale: 2.0 }
+            { threshold: 0.5, name: "ENERGY SPIKE" },
+            { threshold: 2.0, name: "PHONE CHARGE" },
+            { threshold: 5.0, name: "PLASTIC WASTE" },
+            { threshold: 10.0, name: "SERVER LOAD" },
+            { threshold: 20.0, name: "HEAVY METAL" }
         ]
     };
 
@@ -350,7 +353,7 @@
             els.btnToggle.innerText = "RESTORE ORDER";
             els.dMapping.innerText = ">> CRITICAL: VISUALIZING ENTROPY...";
             els.dMapping.style.color = "#FF3333";
-            checkTrashSpawn(true);
+            checkTrashSpawn(true); // 立即生成一些
         } else {
             els.body.classList.remove('mode-waste');
             els.btnToggle.innerText = "SWITCH TO WASTE";
@@ -367,10 +370,10 @@
             const div = document.createElement('div');
             div.className = 'data-row';
             
-            // 随机变量
-            div.style.setProperty('--rand-x', (Math.random() - 0.5) * 100 + 'px');
-            div.style.setProperty('--rand-y', (Math.random() - 0.5) * 50 + 'px');
-            div.style.setProperty('--rand-r', (Math.random() - 0.5) * 15 + 'deg');
+            // 预设随机崩塌参数
+            div.style.setProperty('--rand-x', (Math.random() - 0.5) * 150 + 'px');
+            div.style.setProperty('--rand-y', (Math.random() - 0.5) * 80 + 'px');
+            div.style.setProperty('--rand-r', (Math.random() - 0.5) * 20 + 'deg');
 
             div.innerHTML = `
                 <div class="col-name">${data.name}</div>
@@ -402,6 +405,7 @@
         const eRender = state.renderedCount * CONFIG.dataRenderCost;
         state.totalEnergy = eTime + eScroll + eRender;
 
+        // UI 更新
         const mins = Math.floor(durationSec / 60).toString().padStart(2, '0');
         const secs = Math.floor(durationSec % 60).toString().padStart(2, '0');
         els.dTime.innerText = `${mins}:${secs}`;
@@ -413,33 +417,39 @@
         requestAnimationFrame(energyLoop);
     }
 
-    function checkTrashSpawn() {
+    function checkTrashSpawn(force = false) {
+        // 逻辑：每增加约 1Wh，生成一个垃圾，或者随机生成
+        // 这里使用阈值检测法 + 随机背景垃圾
+        
+        // 1. 阈值生成 (Milestones)
         CONFIG.mapping.forEach((item) => {
             const uniqueKey = item.name;
             if (state.totalEnergy >= item.threshold && !state.generatedTrashThresholds.has(uniqueKey)) {
                 state.generatedTrashThresholds.add(uniqueKey);
-                spawnWasteItem(item);
+                spawnWasteItem(1.5, item.name); // 大图
                 els.dMapping.innerText = `>> GENERATED: ${item.name}`;
             }
         });
 
-        // 随机小垃圾
-        if (Math.random() < 0.01) { 
-           spawnWasteItem({ name: "NOISE", keywords: "texture,abstract", scale: 0.5 }, true);
+        // 2. 随机背景生成 (根据当前能耗等级提高频率)
+        const chance = 0.01 + (state.totalEnergy * 0.005); // 能耗越高，生成越快
+        if (Math.random() < chance) {
+            spawnWasteItem(0.5 + Math.random(), "DATA WASTE");
         }
     }
 
-    // --- 核心修复：图片生成与兜底 ---
-    function spawnWasteItem(config, isNoise = false) {
+    // --- 核心：生成 Unsplash 图片 ---
+    function spawnWasteItem(scale = 1, label = "WASTE") {
         const div = document.createElement('div');
         div.className = 'waste-item';
         
+        // 随机位置与尺寸
         const viewH = els.appContainer.clientHeight;
         const scrollT = els.appContainer.scrollTop;
-        const rTop = scrollT + 100 + Math.random() * (viewH - 200);
+        const rTop = scrollT + 50 + Math.random() * (viewH - 150);
         const rLeft = Math.random() * 80;
         const rRot = (Math.random() - 0.5) * 90;
-        const size = (isNoise ? 80 : 150) * (config.scale || 1);
+        const size = 120 * scale;
         
         div.style.top = rTop + 'px';
         div.style.left = rLeft + '%';
@@ -447,37 +457,21 @@
         div.style.height = size + 'px';
         div.style.transform = `rotate(${rRot}deg)`;
 
-        // 使用 LoremFlickr (更稳定支持关键词) + 随机 Lock 防止缓存
-        const keywords = config.keywords.split(',')[0]; // 取第一个关键词
-        const randomID = Math.floor(Math.random() * 1000);
-        const imgUrl = `https://loremflickr.com/${Math.floor(size)}/${Math.floor(size)}/${keywords}?lock=${randomID}`;
-        
-        // 内部结构：图片 + 兜底文字 + 标签
-        div.innerHTML = `
-            <div class="waste-fallback-text">
-                [${config.name}]<br>LOAD_FAIL<br>//${randomID}
-            </div>
-            <img src="${imgUrl}" alt="${config.name}" loading="lazy">
-            ${!isNoise ? `<div class="waste-label">${config.name}</div>` : ''}
-        `;
+        // 从精选库中随机取一个 ID
+        const randomId = UNSPLASH_GALLERY[Math.floor(Math.random() * UNSPLASH_GALLERY.length)];
+        // 构造 CDN 链接 (指定宽度以节省流量，q=80 压缩)
+        const imgUrl = `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&w=400&q=80`;
 
-        // 图片加载失败处理
-        const img = div.querySelector('img');
-        const fallback = div.querySelector('.waste-fallback-text');
-        
-        img.onerror = function() {
-            this.style.display = 'none'; // 隐藏破损图片
-            div.style.backgroundColor = '#111'; // 保持黑色背景
-            div.style.border = '1px solid red'; // 红色边框示警
-            fallback.style.display = 'block'; // 显示文字
-            fallback.style.color = 'red';
-        };
+        div.innerHTML = `
+            <img src="${imgUrl}" alt="waste">
+            <div class="waste-label">${label}</div>
+        `;
 
         els.container.appendChild(div);
         
-        // 数量限制
+        // 限制数量，防止卡顿
         const allItems = document.querySelectorAll('.waste-item');
-        if (allItems.length > 40) allItems[0].remove();
+        if (allItems.length > 30) allItems[0].remove();
     }
 
     init();
