@@ -1,19 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UAL CARBON ARCHIVE | SITTERWERK STYLE</title>
+    <title>ENTROPY ARCHIVE | 熵增档案馆</title>
     <style>
+        /* --- 0. 全局变量与复古/废土风格定义 --- */
         :root {
-            --bg-color: #F4F4F4; /* 纸张灰白 */
+            --bg-color: #F2F2F2;
             --text-color: #111;
             --line-color: #CCC;
             --accent-color: #000;
             --sidebar-width: 320px;
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
-            --header-height: 140px;
+            
+            /* 废土模式变量 */
+            --waste-bg: #1a1a1a;
+            --waste-text: #EEE;
+            --waste-accent: #FF3333;
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -22,533 +27,524 @@
             font-family: var(--font-main);
             background-color: var(--bg-color);
             color: var(--text-color);
-            display: flex;
             height: 100vh;
             overflow: hidden;
-            /* 噪点纹理：增加纸感与物质感 */
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+            transition: background-color 0.8s ease, color 0.8s ease;
         }
 
-        /* --- 侧边栏 (Sidebar) --- */
-        #sidebar {
-            width: var(--sidebar-width);
-            height: 100%;
-            border-right: 1px solid var(--line-color);
-            background: rgba(244, 244, 244, 0.95);
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            z-index: 10;
-            user-select: none;
+        /* 噪点纹理层 (始终存在，增强物质感) */
+        .noise-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 9999;
+            mix-blend-mode: multiply;
         }
 
-        .sidebar-top {
-            padding: 20px;
-            border-bottom: 1px solid var(--line-color);
+        /* --- 1. 左上角 Sticky 控制区 --- */
+        #control-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 280px;
+            background: rgba(242, 242, 242, 0.95);
+            border: 1px solid var(--text-color);
+            padding: 15px;
+            z-index: 1000;
+            backdrop-filter: blur(5px);
+            box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
+            transition: all 0.5s;
         }
 
-        .search-box {
-            width: 100%;
-            padding: 8px 0;
-            border: none;
-            border-bottom: 1px solid #999;
-            background: transparent;
-            font-family: var(--font-mono);
-            font-size: 13px;
-            outline: none;
-            text-transform: uppercase;
-        }
-        
-        .search-box::placeholder { color: #999; }
-
-        .path-indicator {
-            margin-top: 10px;
-            font-size: 10px;
-            font-family: var(--font-mono);
-            color: #666;
-            height: 12px;
-        }
-
-        .nav-list {
-            flex: 1;
-            overflow-y: auto;
-            list-style: none;
-        }
-
-        .nav-category {
-            border-bottom: 1px solid var(--line-color);
-        }
-
-        .category-header {
-            padding: 15px 20px;
-            cursor: pointer;
+        .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-weight: 600;
-            font-size: 13px;
-            letter-spacing: 0.5px;
-            transition: background 0.2s;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #999;
+            padding-bottom: 10px;
         }
 
-        .category-header:hover { background: #fff; }
-        
-        .category-header .meta {
+        .btn-toggle {
+            background: var(--text-color);
+            color: var(--bg-color);
+            border: none;
+            padding: 6px 12px;
             font-family: var(--font-mono);
-            font-size: 11px;
-            color: #888;
-        }
-
-        .college-list {
-            display: none; /* 默认折叠 */
-            background: #fff;
-            list-style: none;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.02);
-        }
-
-        .college-item {
-            padding: 12px 20px 12px 35px;
-            font-size: 13px;
-            color: #555;
+            font-size: 12px;
             cursor: pointer;
-            border-top: 1px solid #f0f0f0;
-            display: flex;
-            justify-content: space-between;
+            text-transform: uppercase;
+            letter-spacing: 1px;
             transition: all 0.2s;
         }
 
-        .college-item:hover {
-            background: #f8f8f8;
-            color: #000;
-            padding-left: 40px; /* 微动交互 */
+        .btn-toggle:hover {
+            transform: translateY(-2px);
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
         }
 
-        .college-item.active {
-            background: var(--accent-color);
-            color: #fff;
-        }
-
-        .college-item .count {
-            font-family: var(--font-mono);
-            font-size: 10px;
-            opacity: 0.5;
-        }
-
-        /* --- 主区域 (Main) --- */
-        #main-view {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            position: relative;
-            overflow: hidden;
-        }
-
-        /* 顶部摘要 */
-        .summary-header {
-            height: var(--header-height);
-            padding: 30px 40px;
-            border-bottom: 1px solid var(--line-color);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background: rgba(244,244,244,0.8);
-            backdrop-filter: blur(10px);
-            z-index: 5;
-        }
-
-        .summary-title {
-            font-size: 20px;
-            font-weight: 300;
-            letter-spacing: 1px;
-        }
-        
-        .summary-stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+        /* 能耗显示区 */
+        .energy-monitor {
             font-family: var(--font-mono);
             font-size: 11px;
-            color: #666;
-            margin-top: 20px;
+            line-height: 1.6;
+            color: #444;
         }
 
-        .stat-val {
-            display: block;
-            font-size: 16px;
-            color: #000;
-            margin-top: 4px;
-            font-weight: 600;
+        .monitor-row {
+            display: flex;
+            justify-content: space-between;
         }
 
-        /* 列表区域 */
-        #data-container {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 40px 60px 40px;
+        .monitor-val { font-weight: bold; color: var(--text-color); }
+        
+        .mapping-alert {
+            margin-top: 10px;
+            padding-top: 5px;
+            border-top: 1px dashed #999;
+            font-style: italic;
+            min-height: 1.5em;
+            color: var(--waste-accent);
+        }
+
+        /* --- 2. 主容器 --- */
+        #app-container {
+            width: 100%;
+            height: 100%;
+            overflow-y: scroll;
+            padding: 180px 40px 100px 340px; /* 留出左上角面板空间 */
+            position: relative;
             scroll-behavior: smooth;
         }
 
-        .data-table-header {
-            display: grid;
-            grid-template-columns: 3fr 1fr 1fr 2fr;
-            gap: 20px;
-            padding: 15px 0;
-            border-bottom: 2px solid #000;
-            font-family: var(--font-mono);
-            font-size: 10px;
-            text-transform: uppercase;
-            color: #666;
-            position: sticky;
-            top: 0;
-            background: var(--bg-color);
-            z-index: 2;
+        /* 列表容器 */
+        #archive-list {
+            position: relative;
+            max-width: 1000px;
+            /* 3D 透视，为崩塌做准备 */
+            perspective: 1000px; 
         }
 
+        /* --- 3. 条目样式 (Library Mode) --- */
         .data-row {
+            position: relative;
             display: grid;
-            grid-template-columns: 3fr 1fr 1fr 2fr;
+            grid-template-columns: 3fr 1fr 1fr 2fr; /* 栅格布局 */
             gap: 20px;
-            padding: 18px 0;
+            padding: 15px 10px;
             border-bottom: 1px solid var(--line-color);
             font-size: 13px;
             align-items: baseline;
-            transition: opacity 0.3s;
-            cursor: default;
+            background: var(--bg-color);
+            z-index: 10;
+            
+            /* 过渡动画核心 */
+            transition: 
+                transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55),
+                opacity 0.5s ease,
+                background-color 0.5s,
+                border-color 0.5s;
+            transform-origin: center left;
         }
 
-        .data-row:hover { background: rgba(255,255,255,0.6); }
+        .data-row:hover {
+            background: #fff;
+        }
 
-        .col-emission { font-family: var(--font-mono); font-weight: 700; }
-        .col-date { font-family: var(--font-mono); color: #888; }
-        .col-notes { font-size: 12px; color: #777; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .col-name { font-weight: 600; }
+        .col-emission { font-family: var(--font-mono); }
+        .col-meta { color: #888; font-size: 11px; }
 
-        /* 状态页 */
-        .empty-state {
-            height: 100%;
+        /* --- 4. 垃圾场模式 (Waste Mode) --- */
+        
+        /* 当 body 有 .mode-waste 类时 */
+        body.mode-waste {
+            background-color: var(--waste-bg);
+            color: var(--waste-text);
+        }
+
+        body.mode-waste #control-panel {
+            background: #000;
+            border-color: #555;
+            color: #eee;
+        }
+
+        body.mode-waste .energy-monitor { color: #aaa; }
+        body.mode-waste .monitor-val { color: #fff; }
+
+        /* 1. 原始数据的崩塌 */
+        body.mode-waste .data-row {
+            background: transparent;
+            border-bottom: none;
+            color: #666; /* 让文字变暗，突出垃圾 */
+            
+            /* 关键：利用 CSS 变量实现随机崩塌 */
+            transform: 
+                translate(var(--rand-x, 0px), var(--rand-y, 0px)) 
+                rotate(var(--rand-r, 0deg));
+            opacity: 0.6;
+        }
+
+        /* 2. 生成的垃圾物品 (Images) */
+        .waste-item {
+            position: absolute; /* 绝对定位，脱离文档流堆叠 */
             display: flex;
-            flex-direction: column;
-            align-items: center;
             justify-content: center;
-            color: #AAA;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid rgba(255,255,255,0.2);
+            background: #000;
+            
+            /* 初始状态 (用于入场动画) */
+            opacity: 0;
+            transform: scale(0.5) translateY(-50px);
+            animation: trashDrop 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            
+            /* 混合模式，让它们看起来像堆在一起 */
+            z-index: 20; 
+        }
+
+        /* 垃圾图片的艺术滤镜：黑白、高对比、粗粝 */
+        .waste-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: grayscale(100%) contrast(150%) brightness(0.8) sepia(10%);
+        }
+
+        /* 垃圾上的标签 */
+        .waste-label {
+            position: absolute;
+            background: #000;
+            color: #FFF;
+            padding: 2px 5px;
             font-family: var(--font-mono);
-            letter-spacing: 1px;
-            text-align: center;
+            font-size: 10px;
+            border: 1px solid #FFF;
+            transform: rotate(var(--label-r, 0deg));
         }
 
-        .empty-icon {
-            font-size: 40px;
+        @keyframes trashDrop {
+            to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+
+        /* --- 5. 辅助 UI --- */
+        .loading-sentinel {
+            padding: 40px; text-align: center; color: #666; font-family: var(--font-mono);
+        }
+        
+        .empty-intro {
+            padding: 40px;
+            border: 1px dashed #999;
             margin-bottom: 20px;
-            opacity: 0.2;
+            font-family: var(--font-mono);
+            font-size: 12px;
         }
-
-        /* 滚动条美化 */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #CCC; }
-        ::-webkit-scrollbar-thumb:hover { background: #999; }
 
     </style>
 </head>
 <body>
 
-    <aside id="sidebar">
-        <div class="sidebar-top">
-            <input type="text" id="searchInput" class="search-box" placeholder="FILTER DATA..." disabled>
-            <div id="pathDisplay" class="path-indicator">ARCHIVE / ROOT</div>
+    <div class="noise-overlay"></div>
+
+    <div id="control-panel">
+        <div class="panel-header">
+            <h1 style="font-size:14px; text-transform:uppercase; letter-spacing:1px;">UAL Energy Audit</h1>
+            <button id="btnToggle" class="btn-toggle">SWITCH MODE</button>
         </div>
-        <ul id="navList" class="nav-list">
-            </ul>
-    </aside>
-
-    <main id="main-view">
-        <div id="emptyState" class="empty-state">
-            <div class="empty-icon">📂</div>
-            <div>SELECT A CATEGORY & COLLEGE<br>TO ACCESS ARCHIVE</div>
-        </div>
-
-        <div id="contentArea" style="display:none; height:100%; flex-direction:column;">
-            <header class="summary-header">
-                <h1 id="headerTitle" class="summary-title">Title</h1>
-                <div class="summary-stats">
-                    <div>ITEMS <span id="statCount" class="stat-val">0</span></div>
-                    <div>TOTAL EMISSION <span id="statSum" class="stat-val">0</span></div>
-                    <div>AVG EMISSION <span id="statAvg" class="stat-val">0</span></div>
-                    <div>MAX ITEM <span id="statMax" class="stat-val">0</span></div>
-                </div>
-            </header>
-
-            <div id="data-container">
-                <div class="data-table-header">
-                    <div>Item Name</div>
-                    <div>Emission</div>
-                    <div>Year</div>
-                    <div>Context / Notes</div>
-                </div>
-                <div id="listBody">
-                    </div>
-                <div id="loading" style="padding:20px; text-align:center; font-family:monospace; color:#999; display:none;">
-                    LOADING FRAGMENTS...
-                </div>
+        
+        <div class="energy-monitor">
+            <div class="monitor-row">
+                <span>SESSION TIME</span>
+                <span id="dispTime" class="monitor-val">00:00</span>
+            </div>
+            <div class="monitor-row">
+                <span>PIXELS SCROLLED</span>
+                <span id="dispScroll" class="monitor-val">0 px</span>
+            </div>
+            <div class="monitor-row">
+                <span>DATA RENDERED</span>
+                <span id="dispData" class="monitor-val">0 items</span>
+            </div>
+            <div style="margin:10px 0; border-bottom:1px solid #ccc;"></div>
+            <div class="monitor-row" style="font-size:12px;">
+                <span>YOUR FOOTPRINT</span>
+                <span id="dispEnergy" class="monitor-val" style="color:var(--waste-accent)">0.000 Wh</span>
+            </div>
+            <div class="mapping-alert" id="dispMapping">
+                System Initialized.
             </div>
         </div>
-    </main>
+    </div>
+
+    <div id="app-container">
+        
+        <div class="empty-intro" id="introText">
+            [ARCHIVE PROTOCOL]<br><br>
+            SCROLL TO EXPLORE INSTITUTIONAL DATA.<br>
+            EACH PIXEL SCROLLED CONSUMES ENERGY.<br>
+            SWITCH MODE TO VISUALIZE YOUR IMPACT.
+        </div>
+
+        <div id="archive-list">
+            </div>
+        
+        <div class="loading-sentinel" id="sentinel">LOADING DATA...</div>
+    </div>
 
 <script>
-    /**
-     * 1. 内嵌清洗后的数据 (RAW DATA)
-     * 包含: id, category, college, name, emission, unit, date, notes
-     */
-    const RAW_DATA = [
-        {"id": 77, "category": "Cloud, storage and hosting", "college": "CCW", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "kgCO2e", "date": "2023", "notes": "Location - Region / State"},
-        {"id": 81, "category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 178.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 104, "category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 0.12, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate for Hardware (annualised / pro-rated in tCO2e)"},
-        {"id": 85, "category": "Cloud, storage and hosting", "college": "CCW", "name": "Tower Servers", "emission": 486.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 92, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 3328.56, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 115, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate for Hardware (annualised / pro-rated in tCO2e)"},
-        {"id": 98, "category": "Cloud, storage and hosting", "college": "CSM", "name": "HDD", "emission": 46011.0, "unit": "kWh", "date": "2023", "notes": "Storage - Annualised power usage estimate (kWh)"},
-        {"id": 89, "category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 8365.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 74, "category": "Cloud, storage and hosting", "college": "CSM", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "kgCO2e", "date": "2023", "notes": "Location - Region / State"},
-        {"id": 78, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Chassis / Cabinets", "emission": 1068.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 86, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Servers", "emission": 1525.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 94, "category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 6657.12, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 117, "category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 2.72, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate for Hardware (annualised / pro-rated in tCO2e)"},
-        {"id": 100, "category": "Cloud, storage and hosting", "college": "LCC", "name": "HDD", "emission": 46011.0, "unit": "kWh", "date": "2023", "notes": "Storage - Annualised power usage estimate (kWh)"},
-        {"id": 91, "category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 4182.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 93, "category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1109.52, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 99, "category": "Cloud, storage and hosting", "college": "LCF", "name": "HDD", "emission": 46011.0, "unit": "kWh", "date": "2023", "notes": "Storage - Annualised power usage estimate (kWh)"},
-        {"id": 90, "category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 14638.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
-        {"id": 35, "category": "Computer, print and audio", "college": "CCW", "name": "Desktops & VOIP Phones", "emission": 129.21, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate"},
-        {"id": 15, "category": "Computer, print and audio", "college": "CCW", "name": "Laptops", "emission": 53755.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 31, "category": "Computer, print and audio", "college": "CCW", "name": "Laserjet Printers", "emission": 25964.0, "unit": "kWh", "date": "2023", "notes": "Printers - Annualised power usage estimate (kWh)"},
-        {"id": 11, "category": "Computer, print and audio", "college": "CCW", "name": "Screens", "emission": 146656.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 4, "category": "Computer, print and audio", "college": "CCW", "name": "Standard Desktop PC", "emission": 270394.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 32, "category": "Computer, print and audio", "college": "CSM", "name": "Desktops & VOIP Phones", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate"},
-        {"id": 12, "category": "Computer, print and audio", "college": "CSM", "name": "Laptops", "emission": 65375.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 28, "category": "Computer, print and audio", "college": "CSM", "name": "Laserjet Printers", "emission": 23410.0, "unit": "kWh", "date": "2023", "notes": "Printers - Annualised power usage estimate (kWh)"},
-        {"id": 8, "category": "Computer, print and audio", "college": "CSM", "name": "Screens", "emission": 142800.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 1, "category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 255431.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 34, "category": "Computer, print and audio", "college": "LCC", "name": "Desktops & VOIP Phones", "emission": 182.14, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate"},
-        {"id": 14, "category": "Computer, print and audio", "college": "LCC", "name": "Laptops", "emission": 64957.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 3, "category": "Computer, print and audio", "college": "LCC", "name": "Standard Desktop PC", "emission": 359634.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 13, "category": "Computer, print and audio", "college": "LCF", "name": "Laptops", "emission": 92796.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 2, "category": "Computer, print and audio", "college": "LCF", "name": "Standard Desktop PC", "emission": 404522.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
-        {"id": 66, "category": "Network and telephony", "college": "CCW", "name": "Optical Fibre (Data Centre)", "emission": 460011.09, "unit": "kWh", "date": "2023", "notes": "Wide Area Network (WAN)"},
-        {"id": 50, "category": "Network and telephony", "college": "CCW", "name": "Switches", "emission": 284700.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
-        {"id": 54, "category": "Network and telephony", "college": "CCW", "name": "Wireless Network", "emission": 120176.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
-        {"id": 63, "category": "Network and telephony", "college": "CSM", "name": "Optical Fibre (Data Centre)", "emission": 319581.4, "unit": "kWh", "date": "2023", "notes": "Wide Area Network (WAN)"},
-        {"id": 47, "category": "Network and telephony", "college": "CSM", "name": "Switches", "emission": 255792.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
-        {"id": 51, "category": "Network and telephony", "college": "CSM", "name": "Wireless Network", "emission": 40419.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
-        {"id": 65, "category": "Network and telephony", "college": "LCC", "name": "Optical Fibre (Data Centre)", "emission": 71144.33, "unit": "kWh", "date": "2023", "notes": "Wide Area Network (WAN)"},
-        {"id": 49, "category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 311856.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"}
+    // --- 0. 数据源 (UAL CLEANED DATA) ---
+    // 为节省空间，只展示一部分，实际使用请替换为完整 JSON
+    const ARCHIVE_DATA = [
+        {"name": "Standard Desktop PC (CSM)", "emission": 255431, "unit": "kWh", "notes": "Annualised power usage"},
+        {"name": "Optical Fibre WAN (LCC)", "emission": 71144, "unit": "kWh", "notes": "Data Centre to Office"},
+        {"name": "Rack Chassis Cabinets (CCW)", "emission": 178, "unit": "kWh", "notes": "Standard Specification"},
+        {"name": "High Spec GPU Servers (LCF)", "emission": 14638, "unit": "kWh", "notes": "AI & Rendering"},
+        {"name": "Laserjet Printers (All)", "emission": 83850, "unit": "kWh", "notes": "Total annual usage"},
+        {"name": "VoIP Phones (Network)", "emission": 613, "unit": "tCO2e", "notes": "Embodied Carbon"},
+        {"name": "Cooling System PUE 1.6", "emission": 0, "unit": "Ratio", "notes": "Inefficiency overhead"},
+        // ... 为了演示无限滚动，我们会循环使用这些数据
     ];
 
-    // --- 状态管理 ---
+    // --- 1. 配置与能耗模型 ---
+    const CONFIG = {
+        baseCostPerSec: 0.05,    // 基础待机功耗 (Wh/s)
+        scrollCostPerPx: 0.001,  // 滚动功耗 (Wh/px) - 模拟渲染开销
+        dataRenderCost: 0.01,    // DOM 渲染功耗 (Wh/item)
+        
+        // 垃圾映射表 (能耗阈值 -> 物品)
+        // 图片关键词用于 Unsplash 搜索
+        mapping: [
+            { threshold: 0.5, name: "LED BLINK", keywords: "light bulb, spark", scale: 0.5 },
+            { threshold: 2.0, name: "PHONE CHARGE", keywords: "battery, cable, electronic waste", scale: 0.8 },
+            { threshold: 5.0, name: "PLASTIC BOTTLE", keywords: "plastic bottle, trash", scale: 1.0 },
+            { threshold: 10.0, name: "BOILING KETTLE", keywords: "steam, metal texture, industrial", scale: 1.2 },
+            { threshold: 20.0, name: "LAUNDRY CYCLE", keywords: "washing machine, clothes pile, fabric waste", scale: 1.5 },
+            { threshold: 50.0, name: "SERVER RACK", keywords: "server, circuit board, wires", scale: 2.0 }
+        ]
+    };
+
+    // --- 2. 状态管理 ---
     const state = {
-        activeCategory: null,
-        activeCollege: null,
-        filteredData: [],
-        displayLimit: 20, // 初始显示条数
-        searchQuery: ""
+        mode: 'library', // 'library' | 'waste'
+        startTime: Date.now(),
+        lastScrollY: 0,
+        totalScroll: 0,
+        renderedCount: 0,
+        totalEnergy: 0, // Wh
+        
+        // 已生成的垃圾 (防止重复生成)
+        generatedTrashThresholds: new Set(),
+        
+        // 无限滚动指针
+        dataIndex: 0
     };
 
-    // --- DOM 元素引用 ---
+    // --- 3. DOM 元素 ---
     const els = {
-        navList: document.getElementById('navList'),
-        emptyState: document.getElementById('emptyState'),
-        contentArea: document.getElementById('contentArea'),
-        headerTitle: document.getElementById('headerTitle'),
-        listBody: document.getElementById('listBody'),
-        searchInput: document.getElementById('searchInput'),
-        pathDisplay: document.getElementById('pathDisplay'),
-        dataContainer: document.getElementById('data-container'),
-        loading: document.getElementById('loading'),
-        stats: {
-            count: document.getElementById('statCount'),
-            sum: document.getElementById('statSum'),
-            avg: document.getElementById('statAvg'),
-            max: document.getElementById('statMax')
-        }
+        body: document.body,
+        container: document.getElementById('archive-list'),
+        btnToggle: document.getElementById('btnToggle'),
+        appContainer: document.getElementById('app-container'),
+        // Monitors
+        dTime: document.getElementById('dispTime'),
+        dScroll: document.getElementById('dispScroll'),
+        dData: document.getElementById('dispData'),
+        dEnergy: document.getElementById('dispEnergy'),
+        dMapping: document.getElementById('dispMapping')
     };
 
-    // --- 初始化 ---
+    // --- 4. 核心逻辑：渲染与过渡 ---
+
     function init() {
-        renderNav();
-        setupListeners();
+        // 初始加载一批数据
+        loadMoreData(20);
+        
+        // 启动能耗循环
+        requestAnimationFrame(energyLoop);
+
+        // 绑定事件
+        els.btnToggle.addEventListener('click', toggleMode);
+        els.appContainer.addEventListener('scroll', handleScroll);
     }
 
-    // --- 核心逻辑：分组与渲染 ---
-
-    function getCategories() {
-        return [...new Set(RAW_DATA.map(d => d.category))].sort();
-    }
-
-    function getColleges(category) {
-        return [...new Set(RAW_DATA.filter(d => d.category === category).map(d => d.college))].sort();
-    }
-
-    // --- 左侧导航渲染 ---
-    function renderNav() {
-        const cats = getCategories();
-        els.navList.innerHTML = '';
-
-        cats.forEach(cat => {
-            const li = document.createElement('li');
-            li.className = 'nav-category';
-
-            // 1. 一级菜单 Header
-            const header = document.createElement('div');
-            header.className = 'category-header';
-            const count = RAW_DATA.filter(d => d.category === cat).length;
-            header.innerHTML = `<span>${cat}</span> <span class="meta">${count} items</span>`;
+    // 切换模式
+    function toggleMode() {
+        state.mode = state.mode === 'library' ? 'waste' : 'library';
+        
+        if (state.mode === 'waste') {
+            els.body.classList.add('mode-waste');
+            els.btnToggle.innerText = "RESTORE ORDER";
+            els.dMapping.innerText = ">> CRITICAL: VISUALIZING ENTROPY...";
+            els.dMapping.style.color = "#FF3333";
             
-            // 2. 二级菜单容器
-            const subList = document.createElement('ul');
-            subList.className = 'college-list';
-            
-            const colleges = getColleges(cat);
-            colleges.forEach(col => {
-                const subLi = document.createElement('li');
-                subLi.className = 'college-item';
-                const colCount = RAW_DATA.filter(d => d.category === cat && d.college === col).length;
-                subLi.innerHTML = `<span>${col}</span> <span class="count">${colCount}</span>`;
-                
-                // 点击学院
-                subLi.onclick = (e) => {
-                    e.stopPropagation();
-                    document.querySelectorAll('.college-item').forEach(el => el.classList.remove('active'));
-                    subLi.classList.add('active');
-                    selectPath(cat, col);
-                };
-                subList.appendChild(subLi);
-            });
-
-            // 交互：点击一级菜单展开/收起
-            header.onclick = () => {
-                const isOpen = subList.style.display === 'block';
-                // 手风琴效果：先关闭其他
-                document.querySelectorAll('.college-list').forEach(el => el.style.display = 'none');
-                subList.style.display = isOpen ? 'none' : 'block';
-            };
-
-            li.appendChild(header);
-            li.appendChild(subList);
-            els.navList.appendChild(li);
-        });
-    }
-
-    // --- 数据筛选与展示 ---
-    function selectPath(cat, col) {
-        state.activeCategory = cat;
-        state.activeCollege = col;
-        state.searchQuery = "";
-        els.searchInput.value = "";
-        els.searchInput.disabled = false;
-        
-        els.pathDisplay.innerText = `${cat} / ${col}`;
-        
-        els.emptyState.style.display = 'none';
-        els.contentArea.style.display = 'flex';
-        
-        filterAndRender(true);
-    }
-
-    function filterAndRender(resetScroll = false) {
-        // 1. 筛选数据
-        let data = RAW_DATA.filter(d => 
-            d.category === state.activeCategory && 
-            d.college === state.activeCollege
-        );
-
-        // 2. 搜索过滤
-        if (state.searchQuery) {
-            const q = state.searchQuery;
-            data = data.filter(d => 
-                d.name.toLowerCase().includes(q) || 
-                d.notes.toLowerCase().includes(q)
-            );
+            // 触发一次垃圾生成检查
+            checkTrashSpawn(true);
+        } else {
+            els.body.classList.remove('mode-waste');
+            els.btnToggle.innerText = "SWITCH TO WASTE";
+            els.dMapping.innerText = "System Stabilized.";
+            els.dMapping.style.color = "inherit";
         }
-
-        state.filteredData = data;
-        updateStats(data);
-
-        // 3. 重置显示限制
-        if (resetScroll) {
-            state.displayLimit = 20;
-            els.dataContainer.scrollTop = 0;
-            els.listBody.innerHTML = '';
-        }
-
-        // 4. 渲染可见部分 (Virtual/Infinite Scroll Logic)
-        renderChunk();
     }
 
-    function renderChunk() {
-        const currentLen = els.listBody.children.length;
-        const targetLen = Math.min(state.displayLimit, state.filteredData.length);
-
-        if (currentLen >= targetLen) return; // 已经渲染够了
-
+    // 加载数据条目 (HTML 文本)
+    function loadMoreData(count) {
         const fragment = document.createDocumentFragment();
-        const itemsToRender = state.filteredData.slice(currentLen, targetLen);
-
-        itemsToRender.forEach(d => {
+        
+        for (let i = 0; i < count; i++) {
+            const data = ARCHIVE_DATA[state.dataIndex % ARCHIVE_DATA.length];
+            state.dataIndex++;
+            
             const div = document.createElement('div');
             div.className = 'data-row';
+            
+            // 预先计算随机偏移量，存入 CSS 变量 (用于废土模式的崩塌效果)
+            // 只有在 mode-waste 下这些变量才会生效
+            const rX = (Math.random() - 0.5) * 100 + 'px'; // X轴偏移
+            const rY = (Math.random() - 0.5) * 50 + 'px';  // Y轴偏移
+            const rR = (Math.random() - 0.5) * 15 + 'deg'; // 旋转
+            
+            div.style.setProperty('--rand-x', rX);
+            div.style.setProperty('--rand-y', rY);
+            div.style.setProperty('--rand-r', rR);
+
             div.innerHTML = `
-                <div class="col-name">${d.name}</div>
-                <div class="col-emission">${d.emission.toLocaleString()} <span style="font-size:10px; color:#888;">${d.unit}</span></div>
-                <div class="col-date">${d.date}</div>
-                <div class="col-notes" title="${d.notes}">${d.notes}</div>
+                <div class="col-name">${data.name}</div>
+                <div class="col-emission">${data.emission.toLocaleString()} ${data.unit}</div>
+                <div class="col-meta">${data.notes}</div>
+                <div class="col-meta">REF-${state.dataIndex}</div>
             `;
+            
             fragment.appendChild(div);
-        });
+        }
+        
+        els.container.appendChild(fragment);
+        state.renderedCount += count;
+    }
 
-        els.listBody.appendChild(fragment);
+    // 处理滚动
+    function handleScroll() {
+        const scrollTop = els.appContainer.scrollTop;
+        const delta = Math.abs(scrollTop - state.lastScrollY);
+        
+        state.totalScroll += delta;
+        state.lastScrollY = scrollTop;
 
-        // 加载指示器
-        if (targetLen < state.filteredData.length) {
-            els.loading.style.display = 'block';
-        } else {
-            els.loading.style.display = 'none';
+        // 无限滚动检测
+        if (scrollTop + els.appContainer.clientHeight >= els.appContainer.scrollHeight - 100) {
+            loadMoreData(10);
         }
     }
 
-    // --- 统计更新 ---
-    function updateStats(data) {
-        els.headerTitle.innerText = state.activeCollege;
+    // --- 5. 能耗计算系统 (Real-time Energy) ---
+    function energyLoop() {
+        const now = Date.now();
+        const durationSec = (now - state.startTime) / 1000;
         
-        const count = data.length;
-        // 简单累加所有 emission (注意单位混杂，这里做纯数字统计，仅供艺术展示参考)
-        const sum = data.reduce((acc, c) => acc + c.emission, 0);
-        const avg = count ? sum / count : 0;
-        const max = count ? Math.max(...data.map(d => d.emission)) : 0;
+        // 计算公式
+        const eTime = durationSec * CONFIG.baseCostPerSec;
+        const eScroll = state.totalScroll * CONFIG.scrollCostPerPx;
+        const eRender = state.renderedCount * CONFIG.dataRenderCost;
+        
+        state.totalEnergy = eTime + eScroll + eRender;
 
-        const fmt = n => n > 1000 ? (n/1000).toFixed(1) + 'k' : n.toFixed(1);
+        // 更新 UI
+        updateMonitor(durationSec);
 
-        els.stats.count.innerText = count;
-        els.stats.sum.innerText = fmt(sum);
-        els.stats.avg.innerText = fmt(avg);
-        els.stats.max.innerText = fmt(max);
+        // 如果在垃圾模式，检查是否需要生成新垃圾
+        if (state.mode === 'waste') {
+            checkTrashSpawn();
+        }
+
+        requestAnimationFrame(energyLoop);
     }
 
-    // --- 事件监听 ---
-    function setupListeners() {
-        // 搜索
-        els.searchInput.addEventListener('input', (e) => {
-            state.searchQuery = e.target.value.toLowerCase();
-            filterAndRender(true);
-        });
+    function updateMonitor(durationSec) {
+        // 格式化时间 MM:SS
+        const mins = Math.floor(durationSec / 60).toString().padStart(2, '0');
+        const secs = Math.floor(durationSec % 60).toString().padStart(2, '0');
+        
+        els.dTime.innerText = `${mins}:${secs}`;
+        els.dScroll.innerText = `${Math.floor(state.totalScroll)} px`;
+        els.dData.innerText = `${state.renderedCount} items`;
+        els.dEnergy.innerText = `${state.totalEnergy.toFixed(4)} Wh`;
+    }
 
-        // 无限滚动监听
-        els.dataContainer.addEventListener('scroll', () => {
-            const { scrollTop, scrollHeight, clientHeight } = els.dataContainer;
-            if (scrollTop + clientHeight >= scrollHeight - 50) {
-                if (state.displayLimit < state.filteredData.length) {
-                    state.displayLimit += 20;
-                    renderChunk();
-                }
+    // --- 6. 垃圾生成系统 (The Waste Spawner) ---
+    function checkTrashSpawn(force = false) {
+        // 遍历映射表
+        CONFIG.mapping.forEach((item, index) => {
+            // 如果当前能耗超过阈值，且该垃圾还没生成过 (或者是每超过 X 倍生成一个? 这里简化为每个阶段生成一批)
+            // 为了视觉效果，我们按 "每积累 1Wh 随机生成一个" 或者 "达到特定里程碑"
+            
+            // 简单逻辑：每当 totalEnergy 超过 item.threshold 的整数倍时，有概率生成
+            // 这里使用更确定的逻辑：如果当前总能耗 > 阈值，且屏幕上的垃圾数量少于一定比例
+            
+            // 为了演示，我们采用：只要达到阈值，就生成一个独特的“里程碑垃圾”
+            const uniqueKey = item.name; 
+            
+            if (state.totalEnergy >= item.threshold && !state.generatedTrashThresholds.has(uniqueKey)) {
+                state.generatedTrashThresholds.add(uniqueKey);
+                spawnWasteItem(item);
+                els.dMapping.innerText = `>> GENERATED: ${item.name} (${item.threshold} Wh)`;
             }
         });
+
+        // 额外逻辑：随时间持续产生小的背景垃圾 (Noise)
+        if (Math.random() < 0.02) { // 约每秒 1-2 个
+           spawnWasteItem({ 
+               name: "DATA FRAGMENT", 
+               keywords: "texture, grunge, dust", 
+               scale: 0.3 + Math.random() * 0.5 
+           });
+        }
+    }
+
+    function spawnWasteItem(config) {
+        const img = document.createElement('div');
+        img.className = 'waste-item';
+        
+        // 随机位置 (在视口内)
+        const viewH = els.appContainer.clientHeight;
+        const scrollT = els.appContainer.scrollTop;
+        
+        const rTop = scrollT + Math.random() * (viewH - 100); 
+        const rLeft = Math.random() * 80; // 0-80% width
+        const rRot = (Math.random() - 0.5) * 90;
+        
+        // 尺寸
+        const size = 100 * (config.scale || 1);
+        
+        img.style.top = rTop + 'px';
+        img.style.left = rLeft + '%';
+        img.style.width = size + 'px';
+        img.style.height = size + 'px';
+        img.style.transform = `rotate(${rRot}deg)`;
+        
+        // 图片源：使用 Unsplash Source API (无须 Key)
+        // 添加随机数防止缓存
+        const keywords = config.keywords.replace(/ /g, ',');
+        const src = `https://source.unsplash.com/random/${Math.floor(size)}x${Math.floor(size)}/?${keywords}&t=${Date.now()}`;
+        // 注意：source.unsplash.com 有时不稳定，若无法加载可替换为 picsum 或 placeholder
+        // 备用方案：使用 lorempixel 或 placekitten? 不，我们需要垃圾。
+        // 由于 Unsplash Source 逐渐废弃，这里使用 images.unsplash.com 的直接构造方式会更稳定，
+        // 但为了简单，我们先尝试 source。如果失败，可以用 CSS 纯色块代替。
+        
+        img.innerHTML = `
+            <img src="${src}" onerror="this.style.backgroundColor='#333';" alt="waste">
+            <div class="waste-label" style="--label-r:${-rRot}deg">${config.name}</div>
+        `;
+        
+        els.container.appendChild(img);
+        
+        // 限制 DOM 数量 (移除太旧的垃圾)
+        const wasteItems = document.querySelectorAll('.waste-item');
+        if (wasteItems.length > 50) {
+            wasteItems[0].remove();
+        }
     }
 
     // 启动
