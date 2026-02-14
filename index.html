@@ -11,12 +11,11 @@
             --text-color: #111;
             --line-color: #CCC;
             --accent-color: #000;
-            --sidebar-width: 320px;
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
             
             /* 废土模式变量 */
-            --waste-bg: #1a1a1a;
+            --waste-bg: #111;
             --waste-text: #EEE;
             --waste-accent: #FF3333;
         }
@@ -32,7 +31,7 @@
             transition: background-color 0.8s ease, color 0.8s ease;
         }
 
-        /* 噪点纹理层 (始终存在，增强物质感) */
+        /* 噪点纹理层 (增强物质感) */
         .noise-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -84,7 +83,6 @@
             box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
         }
 
-        /* 能耗显示区 */
         .energy-monitor {
             font-family: var(--font-mono);
             font-size: 11px;
@@ -113,16 +111,14 @@
             width: 100%;
             height: 100%;
             overflow-y: scroll;
-            padding: 180px 40px 100px 340px; /* 留出左上角面板空间 */
+            padding: 180px 40px 100px 340px; 
             position: relative;
             scroll-behavior: smooth;
         }
 
-        /* 列表容器 */
         #archive-list {
             position: relative;
             max-width: 1000px;
-            /* 3D 透视，为崩塌做准备 */
             perspective: 1000px; 
         }
 
@@ -130,7 +126,7 @@
         .data-row {
             position: relative;
             display: grid;
-            grid-template-columns: 3fr 1fr 1fr 2fr; /* 栅格布局 */
+            grid-template-columns: 3fr 1fr 1fr 2fr; 
             gap: 20px;
             padding: 15px 10px;
             border-bottom: 1px solid var(--line-color);
@@ -138,27 +134,16 @@
             align-items: baseline;
             background: var(--bg-color);
             z-index: 10;
-            
-            /* 过渡动画核心 */
-            transition: 
-                transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55),
-                opacity 0.5s ease,
-                background-color 0.5s,
-                border-color 0.5s;
+            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.5s ease;
             transform-origin: center left;
         }
 
-        .data-row:hover {
-            background: #fff;
-        }
-
+        .data-row:hover { background: #fff; }
         .col-name { font-weight: 600; }
         .col-emission { font-family: var(--font-mono); }
         .col-meta { color: #888; font-size: 11px; }
 
         /* --- 4. 垃圾场模式 (Waste Mode) --- */
-        
-        /* 当 body 有 .mode-waste 类时 */
         body.mode-waste {
             background-color: var(--waste-bg);
             color: var(--waste-text);
@@ -169,78 +154,85 @@
             border-color: #555;
             color: #eee;
         }
+        
+        body.mode-waste .btn-toggle {
+            background: #eee; color: #000;
+        }
 
-        body.mode-waste .energy-monitor { color: #aaa; }
-        body.mode-waste .monitor-val { color: #fff; }
-
-        /* 1. 原始数据的崩塌 */
         body.mode-waste .data-row {
             background: transparent;
             border-bottom: none;
-            color: #666; /* 让文字变暗，突出垃圾 */
-            
-            /* 关键：利用 CSS 变量实现随机崩塌 */
-            transform: 
-                translate(var(--rand-x, 0px), var(--rand-y, 0px)) 
-                rotate(var(--rand-r, 0deg));
-            opacity: 0.6;
+            color: #555;
+            transform: translate(var(--rand-x, 0px), var(--rand-y, 0px)) rotate(var(--rand-r, 0deg));
+            opacity: 0.5;
+            pointer-events: none;
         }
 
-        /* 2. 生成的垃圾物品 (Images) */
+        /* --- 5. 垃圾物品 (核心修复) --- */
         .waste-item {
-            position: absolute; /* 绝对定位，脱离文档流堆叠 */
+            position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            box-shadow: 10px 10px 30px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,255,255,0.2);
-            background: #000;
+            background: #222; /* 默认黑色背景，防止图片没加载时透明 */
+            border: 1px solid rgba(255,255,255,0.3);
+            box-shadow: 10px 10px 40px rgba(0,0,0,0.8);
             
-            /* 初始状态 (用于入场动画) */
+            /* 初始动画 */
             opacity: 0;
             transform: scale(0.5) translateY(-50px);
-            animation: trashDrop 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            
-            /* 混合模式，让它们看起来像堆在一起 */
-            z-index: 20; 
+            animation: trashDrop 0.5s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50; 
         }
 
-        /* 垃圾图片的艺术滤镜：黑白、高对比、粗粝 */
+        /* 图片样式：强制黑白、高对比 */
         .waste-item img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: grayscale(100%) contrast(150%) brightness(0.8) sepia(10%);
+            /* 核心：即使图片是普通的，这个滤镜也会让它看起来像垃圾/复印件 */
+            filter: grayscale(100%) contrast(150%) brightness(0.9) sepia(20%); 
+            transition: opacity 0.3s;
         }
 
+        /* 如果图片挂了，显示的文字 */
+        .waste-fallback-text {
+            position: absolute;
+            color: #555;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            text-align: center;
+            padding: 5px;
+            width: 100%;
+            word-break: break-all;
+            display: none; /* 默认隐藏，JS控制显示 */
+        }
+        
         /* 垃圾上的标签 */
         .waste-label {
             position: absolute;
+            bottom: 5px;
+            right: 5px;
             background: #000;
             color: #FFF;
-            padding: 2px 5px;
+            padding: 2px 6px;
             font-family: var(--font-mono);
-            font-size: 10px;
+            font-size: 9px;
             border: 1px solid #FFF;
-            transform: rotate(var(--label-r, 0deg));
+            pointer-events: none;
         }
 
         @keyframes trashDrop {
             to { opacity: 1; transform: scale(1) translateY(0); }
         }
 
-        /* --- 5. 辅助 UI --- */
         .loading-sentinel {
             padding: 40px; text-align: center; color: #666; font-family: var(--font-mono);
         }
         
         .empty-intro {
-            padding: 40px;
-            border: 1px dashed #999;
-            margin-bottom: 20px;
-            font-family: var(--font-mono);
-            font-size: 12px;
+            padding: 40px; border: 1px dashed #999; margin-bottom: 20px; font-family: var(--font-mono); font-size: 12px;
         }
 
     </style>
@@ -261,7 +253,7 @@
                 <span id="dispTime" class="monitor-val">00:00</span>
             </div>
             <div class="monitor-row">
-                <span>PIXELS SCROLLED</span>
+                <span>SCROLL PIXELS</span>
                 <span id="dispScroll" class="monitor-val">0 px</span>
             </div>
             <div class="monitor-row">
@@ -280,23 +272,18 @@
     </div>
 
     <div id="app-container">
-        
         <div class="empty-intro" id="introText">
             [ARCHIVE PROTOCOL]<br><br>
             SCROLL TO EXPLORE INSTITUTIONAL DATA.<br>
-            EACH PIXEL SCROLLED CONSUMES ENERGY.<br>
-            SWITCH MODE TO VISUALIZE YOUR IMPACT.
+            EVERY INTERACTION CONSUMES ENERGY.<br>
+            SWITCH MODE TO VISUALIZE THE PHYSICAL IMPACT.
         </div>
-
-        <div id="archive-list">
-            </div>
-        
+        <div id="archive-list"></div>
         <div class="loading-sentinel" id="sentinel">LOADING DATA...</div>
     </div>
 
 <script>
-    // --- 0. 数据源 (UAL CLEANED DATA) ---
-    // 为节省空间，只展示一部分，实际使用请替换为完整 JSON
+    // --- 0. 模拟数据 ---
     const ARCHIVE_DATA = [
         {"name": "Standard Desktop PC (CSM)", "emission": 255431, "unit": "kWh", "notes": "Annualised power usage"},
         {"name": "Optical Fibre WAN (LCC)", "emission": 71144, "unit": "kWh", "notes": "Data Centre to Office"},
@@ -304,51 +291,42 @@
         {"name": "High Spec GPU Servers (LCF)", "emission": 14638, "unit": "kWh", "notes": "AI & Rendering"},
         {"name": "Laserjet Printers (All)", "emission": 83850, "unit": "kWh", "notes": "Total annual usage"},
         {"name": "VoIP Phones (Network)", "emission": 613, "unit": "tCO2e", "notes": "Embodied Carbon"},
-        {"name": "Cooling System PUE 1.6", "emission": 0, "unit": "Ratio", "notes": "Inefficiency overhead"},
-        // ... 为了演示无限滚动，我们会循环使用这些数据
+        {"name": "Cooling System PUE 1.6", "emission": 0, "unit": "Ratio", "notes": "Inefficiency overhead"}
     ];
 
-    // --- 1. 配置与能耗模型 ---
+    // --- 1. 配置 ---
     const CONFIG = {
-        baseCostPerSec: 0.05,    // 基础待机功耗 (Wh/s)
-        scrollCostPerPx: 0.001,  // 滚动功耗 (Wh/px) - 模拟渲染开销
-        dataRenderCost: 0.01,    // DOM 渲染功耗 (Wh/item)
+        baseCostPerSec: 0.05,
+        scrollCostPerPx: 0.001,
+        dataRenderCost: 0.01,
         
-        // 垃圾映射表 (能耗阈值 -> 物品)
-        // 图片关键词用于 Unsplash 搜索
+        // 映射表：关键词使用了更广泛的词汇以确保图片库有结果
         mapping: [
-            { threshold: 0.5, name: "LED BLINK", keywords: "light bulb, spark", scale: 0.5 },
-            { threshold: 2.0, name: "PHONE CHARGE", keywords: "battery, cable, electronic waste", scale: 0.8 },
-            { threshold: 5.0, name: "PLASTIC BOTTLE", keywords: "plastic bottle, trash", scale: 1.0 },
-            { threshold: 10.0, name: "BOILING KETTLE", keywords: "steam, metal texture, industrial", scale: 1.2 },
-            { threshold: 20.0, name: "LAUNDRY CYCLE", keywords: "washing machine, clothes pile, fabric waste", scale: 1.5 },
-            { threshold: 50.0, name: "SERVER RACK", keywords: "server, circuit board, wires", scale: 2.0 }
+            { threshold: 0.5, name: "LED BLINK", keywords: "lightbulb,electricity", scale: 0.6 },
+            { threshold: 1.5, name: "PLASTIC WASTE", keywords: "plastic,trash", scale: 0.8 },
+            { threshold: 3.0, name: "E-WASTE", keywords: "circuit,wires,computer", scale: 1.0 },
+            { threshold: 6.0, name: "METAL SCRAP", keywords: "metal,rust,industry", scale: 1.2 },
+            { threshold: 12.0, name: "SERVER DUMP", keywords: "server,technology,cyberpunk", scale: 1.5 },
+            { threshold: 25.0, name: "HEAVY INDUSTRY", keywords: "factory,smoke,pollution", scale: 2.0 }
         ]
     };
 
-    // --- 2. 状态管理 ---
     const state = {
-        mode: 'library', // 'library' | 'waste'
+        mode: 'library',
         startTime: Date.now(),
         lastScrollY: 0,
         totalScroll: 0,
         renderedCount: 0,
-        totalEnergy: 0, // Wh
-        
-        // 已生成的垃圾 (防止重复生成)
+        totalEnergy: 0,
         generatedTrashThresholds: new Set(),
-        
-        // 无限滚动指针
         dataIndex: 0
     };
 
-    // --- 3. DOM 元素 ---
     const els = {
         body: document.body,
         container: document.getElementById('archive-list'),
         btnToggle: document.getElementById('btnToggle'),
         appContainer: document.getElementById('app-container'),
-        // Monitors
         dTime: document.getElementById('dispTime'),
         dScroll: document.getElementById('dispScroll'),
         dData: document.getElementById('dispData'),
@@ -356,21 +334,14 @@
         dMapping: document.getElementById('dispMapping')
     };
 
-    // --- 4. 核心逻辑：渲染与过渡 ---
-
+    // --- 初始化 ---
     function init() {
-        // 初始加载一批数据
         loadMoreData(20);
-        
-        // 启动能耗循环
         requestAnimationFrame(energyLoop);
-
-        // 绑定事件
         els.btnToggle.addEventListener('click', toggleMode);
         els.appContainer.addEventListener('scroll', handleScroll);
     }
 
-    // 切换模式
     function toggleMode() {
         state.mode = state.mode === 'library' ? 'waste' : 'library';
         
@@ -379,8 +350,6 @@
             els.btnToggle.innerText = "RESTORE ORDER";
             els.dMapping.innerText = ">> CRITICAL: VISUALIZING ENTROPY...";
             els.dMapping.style.color = "#FF3333";
-            
-            // 触发一次垃圾生成检查
             checkTrashSpawn(true);
         } else {
             els.body.classList.remove('mode-waste');
@@ -390,26 +359,18 @@
         }
     }
 
-    // 加载数据条目 (HTML 文本)
     function loadMoreData(count) {
         const fragment = document.createDocumentFragment();
-        
         for (let i = 0; i < count; i++) {
             const data = ARCHIVE_DATA[state.dataIndex % ARCHIVE_DATA.length];
             state.dataIndex++;
-            
             const div = document.createElement('div');
             div.className = 'data-row';
             
-            // 预先计算随机偏移量，存入 CSS 变量 (用于废土模式的崩塌效果)
-            // 只有在 mode-waste 下这些变量才会生效
-            const rX = (Math.random() - 0.5) * 100 + 'px'; // X轴偏移
-            const rY = (Math.random() - 0.5) * 50 + 'px';  // Y轴偏移
-            const rR = (Math.random() - 0.5) * 15 + 'deg'; // 旋转
-            
-            div.style.setProperty('--rand-x', rX);
-            div.style.setProperty('--rand-y', rY);
-            div.style.setProperty('--rand-r', rR);
+            // 随机变量
+            div.style.setProperty('--rand-x', (Math.random() - 0.5) * 100 + 'px');
+            div.style.setProperty('--rand-y', (Math.random() - 0.5) * 50 + 'px');
+            div.style.setProperty('--rand-r', (Math.random() - 0.5) * 15 + 'deg');
 
             div.innerHTML = `
                 <div class="col-name">${data.name}</div>
@@ -417,139 +378,109 @@
                 <div class="col-meta">${data.notes}</div>
                 <div class="col-meta">REF-${state.dataIndex}</div>
             `;
-            
             fragment.appendChild(div);
         }
-        
         els.container.appendChild(fragment);
         state.renderedCount += count;
     }
 
-    // 处理滚动
     function handleScroll() {
         const scrollTop = els.appContainer.scrollTop;
         const delta = Math.abs(scrollTop - state.lastScrollY);
-        
         state.totalScroll += delta;
         state.lastScrollY = scrollTop;
-
-        // 无限滚动检测
         if (scrollTop + els.appContainer.clientHeight >= els.appContainer.scrollHeight - 100) {
             loadMoreData(10);
         }
     }
 
-    // --- 5. 能耗计算系统 (Real-time Energy) ---
     function energyLoop() {
         const now = Date.now();
         const durationSec = (now - state.startTime) / 1000;
-        
-        // 计算公式
         const eTime = durationSec * CONFIG.baseCostPerSec;
         const eScroll = state.totalScroll * CONFIG.scrollCostPerPx;
         const eRender = state.renderedCount * CONFIG.dataRenderCost;
-        
         state.totalEnergy = eTime + eScroll + eRender;
 
-        // 更新 UI
-        updateMonitor(durationSec);
-
-        // 如果在垃圾模式，检查是否需要生成新垃圾
-        if (state.mode === 'waste') {
-            checkTrashSpawn();
-        }
-
-        requestAnimationFrame(energyLoop);
-    }
-
-    function updateMonitor(durationSec) {
-        // 格式化时间 MM:SS
         const mins = Math.floor(durationSec / 60).toString().padStart(2, '0');
         const secs = Math.floor(durationSec % 60).toString().padStart(2, '0');
-        
         els.dTime.innerText = `${mins}:${secs}`;
         els.dScroll.innerText = `${Math.floor(state.totalScroll)} px`;
         els.dData.innerText = `${state.renderedCount} items`;
         els.dEnergy.innerText = `${state.totalEnergy.toFixed(4)} Wh`;
+
+        if (state.mode === 'waste') checkTrashSpawn();
+        requestAnimationFrame(energyLoop);
     }
 
-    // --- 6. 垃圾生成系统 (The Waste Spawner) ---
-    function checkTrashSpawn(force = false) {
-        // 遍历映射表
-        CONFIG.mapping.forEach((item, index) => {
-            // 如果当前能耗超过阈值，且该垃圾还没生成过 (或者是每超过 X 倍生成一个? 这里简化为每个阶段生成一批)
-            // 为了视觉效果，我们按 "每积累 1Wh 随机生成一个" 或者 "达到特定里程碑"
-            
-            // 简单逻辑：每当 totalEnergy 超过 item.threshold 的整数倍时，有概率生成
-            // 这里使用更确定的逻辑：如果当前总能耗 > 阈值，且屏幕上的垃圾数量少于一定比例
-            
-            // 为了演示，我们采用：只要达到阈值，就生成一个独特的“里程碑垃圾”
-            const uniqueKey = item.name; 
-            
+    function checkTrashSpawn() {
+        CONFIG.mapping.forEach((item) => {
+            const uniqueKey = item.name;
             if (state.totalEnergy >= item.threshold && !state.generatedTrashThresholds.has(uniqueKey)) {
                 state.generatedTrashThresholds.add(uniqueKey);
                 spawnWasteItem(item);
-                els.dMapping.innerText = `>> GENERATED: ${item.name} (${item.threshold} Wh)`;
+                els.dMapping.innerText = `>> GENERATED: ${item.name}`;
             }
         });
 
-        // 额外逻辑：随时间持续产生小的背景垃圾 (Noise)
-        if (Math.random() < 0.02) { // 约每秒 1-2 个
-           spawnWasteItem({ 
-               name: "DATA FRAGMENT", 
-               keywords: "texture, grunge, dust", 
-               scale: 0.3 + Math.random() * 0.5 
-           });
+        // 随机小垃圾
+        if (Math.random() < 0.01) { 
+           spawnWasteItem({ name: "NOISE", keywords: "texture,abstract", scale: 0.5 }, true);
         }
     }
 
-    function spawnWasteItem(config) {
-        const img = document.createElement('div');
-        img.className = 'waste-item';
+    // --- 核心修复：图片生成与兜底 ---
+    function spawnWasteItem(config, isNoise = false) {
+        const div = document.createElement('div');
+        div.className = 'waste-item';
         
-        // 随机位置 (在视口内)
         const viewH = els.appContainer.clientHeight;
         const scrollT = els.appContainer.scrollTop;
-        
-        const rTop = scrollT + Math.random() * (viewH - 100); 
-        const rLeft = Math.random() * 80; // 0-80% width
+        const rTop = scrollT + 100 + Math.random() * (viewH - 200);
+        const rLeft = Math.random() * 80;
         const rRot = (Math.random() - 0.5) * 90;
+        const size = (isNoise ? 80 : 150) * (config.scale || 1);
         
-        // 尺寸
-        const size = 100 * (config.scale || 1);
+        div.style.top = rTop + 'px';
+        div.style.left = rLeft + '%';
+        div.style.width = size + 'px';
+        div.style.height = size + 'px';
+        div.style.transform = `rotate(${rRot}deg)`;
+
+        // 使用 LoremFlickr (更稳定支持关键词) + 随机 Lock 防止缓存
+        const keywords = config.keywords.split(',')[0]; // 取第一个关键词
+        const randomID = Math.floor(Math.random() * 1000);
+        const imgUrl = `https://loremflickr.com/${Math.floor(size)}/${Math.floor(size)}/${keywords}?lock=${randomID}`;
         
-        img.style.top = rTop + 'px';
-        img.style.left = rLeft + '%';
-        img.style.width = size + 'px';
-        img.style.height = size + 'px';
-        img.style.transform = `rotate(${rRot}deg)`;
-        
-        // 图片源：使用 Unsplash Source API (无须 Key)
-        // 添加随机数防止缓存
-        const keywords = config.keywords.replace(/ /g, ',');
-        const src = `https://source.unsplash.com/random/${Math.floor(size)}x${Math.floor(size)}/?${keywords}&t=${Date.now()}`;
-        // 注意：source.unsplash.com 有时不稳定，若无法加载可替换为 picsum 或 placeholder
-        // 备用方案：使用 lorempixel 或 placekitten? 不，我们需要垃圾。
-        // 由于 Unsplash Source 逐渐废弃，这里使用 images.unsplash.com 的直接构造方式会更稳定，
-        // 但为了简单，我们先尝试 source。如果失败，可以用 CSS 纯色块代替。
-        
-        img.innerHTML = `
-            <img src="${src}" onerror="this.style.backgroundColor='#333';" alt="waste">
-            <div class="waste-label" style="--label-r:${-rRot}deg">${config.name}</div>
+        // 内部结构：图片 + 兜底文字 + 标签
+        div.innerHTML = `
+            <div class="waste-fallback-text">
+                [${config.name}]<br>LOAD_FAIL<br>//${randomID}
+            </div>
+            <img src="${imgUrl}" alt="${config.name}" loading="lazy">
+            ${!isNoise ? `<div class="waste-label">${config.name}</div>` : ''}
         `;
+
+        // 图片加载失败处理
+        const img = div.querySelector('img');
+        const fallback = div.querySelector('.waste-fallback-text');
         
-        els.container.appendChild(img);
+        img.onerror = function() {
+            this.style.display = 'none'; // 隐藏破损图片
+            div.style.backgroundColor = '#111'; // 保持黑色背景
+            div.style.border = '1px solid red'; // 红色边框示警
+            fallback.style.display = 'block'; // 显示文字
+            fallback.style.color = 'red';
+        };
+
+        els.container.appendChild(div);
         
-        // 限制 DOM 数量 (移除太旧的垃圾)
-        const wasteItems = document.querySelectorAll('.waste-item');
-        if (wasteItems.length > 50) {
-            wasteItems[0].remove();
-        }
+        // 数量限制
+        const allItems = document.querySelectorAll('.waste-item');
+        if (allItems.length > 40) allItems[0].remove();
     }
 
-    // 启动
     init();
-
 </script>
 </body>
 </html>
