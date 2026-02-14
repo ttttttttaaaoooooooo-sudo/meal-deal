@@ -6,180 +6,29 @@
     <title>The Initiative | 2026 Report</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
-        /* 这里是 CSS 样式区 
-           目的是制造“过度的整洁感”
-        */
-        :root {
-            --bg-color: #FAFAFA; /* 极其干净的浅灰白 */
-            --text-color: #2C2C2C; /* 深灰，不是纯黑，显得高级 */
-            --accent-color: #00D664; /* 令人安心的“伪善绿” */
-            --border-color: #E0E0E0;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            line-height: 1.6;
-            overflow-x: hidden; /* 禁止横向滚动 */
-        }
-
-        /* 导航栏：极简，只有Logo和汉堡菜单 */
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 2rem 4rem;
-            position: fixed;
-            width: 100%;
-            top: 0;
-            background: rgba(250, 250, 250, 0.95);
-            backdrop-filter: blur(10px);
-            z-index: 100;
-            border-bottom: 1px solid transparent;
-            transition: border-color 0.3s;
-        }
-
-        nav:hover {
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .logo {
-            font-weight: 600;
-            letter-spacing: -0.5px;
-            font-size: 1.2rem;
-        }
-
-        .menu-icon {
-            width: 30px;
-            height: 2px;
-            background: var(--text-color);
-            position: relative;
-        }
-        .menu-icon::before, .menu-icon::after {
-            content: '';
-            position: absolute;
-            width: 30px;
-            height: 2px;
-            background: var(--text-color);
-            left: 0;
-        }
+        /* CSS 样式部分 (保持不变) */
+        :root { --bg-color: #FAFAFA; --text-color: #2C2C2C; --accent-color: #00D664; --border-color: #E0E0E0; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; overflow-x: hidden; transition: all 0.5s ease; /* 添加过渡动画 */ }
+        nav { display: flex; justify-content: space-between; align-items: center; padding: 2rem 4rem; position: fixed; width: 100%; top: 0; background: rgba(250, 250, 250, 0.95); backdrop-filter: blur(10px); z-index: 100; transition: all 0.5s ease; }
+        .logo { font-weight: 600; letter-spacing: -0.5px; font-size: 1.2rem; }
+        .menu-icon { width: 30px; height: 2px; background: var(--text-color); position: relative; }
+        .menu-icon::before, .menu-icon::after { content: ''; position: absolute; width: 30px; height: 2px; background: var(--text-color); left: 0; }
         .menu-icon::before { top: -8px; }
         .menu-icon::after { top: 8px; }
-
-        /* Hero 区域：巨大的留白，空洞的口号 */
-        .hero {
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 0 2rem;
-        }
-
-        h1 {
-            font-size: 5rem;
-            font-weight: 300; /* 细字体显得轻盈、无害 */
-            letter-spacing: -2px;
-            margin-bottom: 1.5rem;
-            max-width: 800px;
-        }
-
-        h1 span {
-            color: var(--accent-color);
-            font-style: italic; /* 强调词 */
-        }
-
-        .subtitle {
-            font-size: 1.2rem;
-            color: #888;
-            max-width: 600px;
-            margin-bottom: 3rem;
-        }
-
-        .btn {
-            padding: 1rem 2.5rem;
-            border: 1px solid var(--text-color);
-            background: transparent;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border-radius: 50px; /* 圆角显得更柔和 */
-        }
-
-        .btn:hover {
-            background: var(--text-color);
-            color: var(--bg-color);
-        }
-
-        /* 数据展示区：干净得不真实的饼图 */
-        .data-section {
-            padding: 8rem 4rem;
-            background: #FFFFFF;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4rem;
-            align-items: center;
-        }
-
-        .chart-container {
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            background: conic-gradient(
-                var(--accent-color) 0% 98%, 
-                #E0E0E0 98% 100%
-            ); /* 一个几乎全满的饼图，暗示“完美” */
-            margin: 0 auto;
-            position: relative;
-        }
-
-        .chart-container::after {
-            content: "98%";
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            font-size: 3rem;
-            font-weight: 600;
-            color: var(--text-color);
-        }
-
-        .text-block h2 {
-            font-size: 2.5rem;
-            font-weight: 300;
-            margin-bottom: 1rem;
-        }
-        
-        .text-block p {
-            color: #666;
-            margin-bottom: 2rem;
-        }
-
-        /* 隐藏的开关/彩蛋区 (为后续做铺垫) */
-        .toggle-reality {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            font-size: 0.8rem;
-            opacity: 0.3;
-            cursor: pointer;
-        }
-        
-        .toggle-reality:hover {
-            opacity: 1;
-            text-decoration: underline;
-        }
-
+        .hero { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0 2rem; }
+        h1 { font-size: 5rem; font-weight: 300; letter-spacing: -2px; margin-bottom: 1.5rem; max-width: 800px; transition: all 0.2s; }
+        h1 span { color: var(--accent-color); font-style: italic; }
+        .subtitle { font-size: 1.2rem; color: #888; max-width: 600px; margin-bottom: 3rem; }
+        .btn { padding: 1rem 2.5rem; border: 1px solid var(--text-color); background: transparent; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; transition: all 0.3s ease; border-radius: 50px; }
+        .btn:hover { background: var(--text-color); color: var(--bg-color); }
+        .data-section { padding: 8rem 4rem; background: #FFFFFF; display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; transition: all 0.5s ease; }
+        .chart-container { width: 300px; height: 300px; border-radius: 50%; background: conic-gradient(var(--accent-color) 0% 98%, #E0E0E0 98% 100%); margin: 0 auto; position: relative; transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+        .chart-container::after { content: "98%"; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3rem; font-weight: 600; color: var(--text-color); }
+        .text-block h2 { font-size: 2.5rem; font-weight: 300; margin-bottom: 1rem; }
+        .text-block p { color: #666; margin-bottom: 2rem; }
+        .toggle-reality { position: fixed; bottom: 2rem; right: 2rem; font-size: 0.8rem; opacity: 0.3; cursor: pointer; border: 1px solid #ccc; padding: 5px 10px; z-index: 1000; background: white; }
+        .toggle-reality:hover { opacity: 1; text-decoration: underline; background: #eee; }
     </style>
 </head>
 <body>
@@ -208,5 +57,63 @@
         [ Debug: View Raw Data ]
     </div>
 
+    <script>
+        const realityToggle = document.querySelector('.toggle-reality');
+        const body = document.body;
+        const heroTitle = document.querySelector('h1');
+        const subtitle = document.querySelector('.subtitle');
+        const chart = document.querySelector('.chart-container');
+        const nav = document.querySelector('nav');
+        const dataSection = document.querySelector('.data-section');
+
+        const glitchTexts = [
+            "ERROR: DATA OVERFLOW", "404: REALITY NOT FOUND", 
+            "UNMEASURED WASTE DETECTED", "SYSTEM FAILURE",
+            "TOXIC LEAKAGE", "010101010101"
+        ];
+
+        realityToggle.addEventListener('click', function() {
+            
+            // 1. 改变整体色调
+            body.style.backgroundColor = "#1a1a1a"; 
+            body.style.color = "#00ff00"; 
+            body.style.fontFamily = "'Courier New', Courier, monospace"; 
+            
+            // 2. 破坏区域背景
+            dataSection.style.backgroundColor = "#220000"; // 变成深红
+
+            // 3. 破坏导航栏
+            nav.style.transform = "skewY(5deg)";
+            nav.style.background = "red";
+            nav.querySelector('.logo').innerText = "FATAL ERROR // WASTE DUMP";
+
+            // 4. 替换大标题
+            heroTitle.innerHTML = "THE <span style='color:red; background:white;'>MESS</span><br>IS HERE.";
+            
+            // 5. 替换副标题
+            subtitle.innerText = "Processing 8.5 million tons of unmeasured e-waste... Graphics rendering failed.";
+            subtitle.style.color = "red";
+
+            // 6. 让饼图变形
+            chart.style.borderRadius = "10%"; 
+            chart.style.background = "repeating-linear-gradient(45deg, yellow, yellow 10px, black 10px, black 20px)"; 
+            
+            // 7. 生成满屏的弹幕垃圾
+            setInterval(function(){
+                let garbage = document.createElement('div');
+                garbage.innerText = glitchTexts[Math.floor(Math.random() * glitchTexts.length)];
+                garbage.style.position = 'absolute';
+                garbage.style.top = Math.random() * 100 + 'vh';
+                garbage.style.left = Math.random() * 100 + 'vw';
+                garbage.style.color = Math.random() > 0.5 ? 'red' : 'white';
+                garbage.style.fontSize = Math.random() * 3 + 'rem';
+                garbage.style.zIndex = '999';
+                garbage.style.pointerEvents = 'none';
+                body.appendChild(garbage);
+            }, 100); // 每0.1秒生成一个垃圾文字
+
+            realityToggle.innerText = "[ CRITICAL FAILURE ]";
+        });
+    </script>
 </body>
 </html>
