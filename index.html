@@ -3,72 +3,485 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UAL CARBON ARCHIVE | DEBUGGED</title>
+    <title>Carbon Emission Archive</title>
     <style>
-        /* --- 0. 基础设置 --- */
+        /* --- RESET & BASE --- */
         :root {
-            --bg-color: #F4F4F4;
-            --text-color: #111;
-            --line-color: #CCC;
-            --waste-bg: #111;
-            --waste-text: #888;
-            --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            --font-mono: 'Courier New', Courier, monospace;
+            --font-main: "Helvetica Neue", Helvetica, Arial, sans-serif;
+            --color-bg: #ffffff;
+            --color-text: #000000;
+            --color-line: #e0e0e0;
+            --color-highlight: #f0f0f0;
+            --space-unit: 16px;
+            --sidebar-width: 320px;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
         body {
             font-family: var(--font-main);
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--color-bg);
+            color: var(--color-text);
+            font-size: 13px;
+            line-height: 1.4;
             height: 100vh;
             overflow: hidden;
+            -webkit-font-smoothing: antialiased;
             display: flex;
         }
 
-        /* 错误提示框 */
-        #error-console {
-            position: fixed; top: 0; left: 0; width: 100%; background: red; color: white;
-            padding: 10px; font-family: monospace; z-index: 99999; display: none;
+        /* --- NOISE TEXTURE --- */
+        #noise-canvas {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            opacity: 0.04;
+            z-index: 9999;
         }
 
-        /* --- 侧边栏 --- */
-        #sidebar {
-            width: 300px;
-            background: #EFEFEF;
-            border-right: 1px solid #CCC;
+        /* --- LAYOUT --- */
+        #app {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* --- SIDEBAR --- */
+        aside {
+            width: var(--sidebar-width);
+            border-right: 1px solid var(--color-text);
             display: flex;
             flex-direction: column;
-            z-index: 100;
-        }
-
-        .sidebar-header { padding: 20px; border-bottom: 1px solid #CCC; }
-        
-        .nav-list { flex: 1; overflow-y: auto; list-style: none; }
-        .nav-category { border-bottom: 1px solid #DDD; }
-        .category-header { padding: 10px 20px; font-weight: bold; cursor: pointer; display: flex; justify-content: space-between; }
-        .category-header:hover { background: #FFF; }
-        
-        .college-list { display: none; background: #FFF; }
-        .college-item { padding: 8px 20px 8px 30px; font-size: 13px; cursor: pointer; color: #555; }
-        .college-item:hover { background: #EEE; color: #000; }
-        .college-item.active { background: #000; color: #FFF; }
-
-        /* --- 主区域 --- */
-        #main-view { flex: 1; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-
-        .header-stats {
-            padding: 20px 40px;
-            background: rgba(244,244,244,0.9);
-            border-bottom: 1px solid #CCC;
+            background: #fff;
+            flex-shrink: 0;
             z-index: 10;
         }
 
-        .stats-row { display: flex; gap: 30px; margin-top: 10px; font-family: var(--font-mono); font-size: 12px; }
-        .stat-box strong { display: block; font-size: 16px; }
+        .search-container {
+            padding: var(--space-unit);
+            border-bottom: 1px solid var(--color-text);
+        }
 
-        #data-container { flex: 1; overflow-y: auto; padding: 20px 40px; position: relative; perspective: 1000px; }
+        input#search-input {
+            width: 100%;
+            border: 1px solid var(--color-text);
+            padding: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            border-radius: 0;
+            background: transparent;
+        }
+        input#search-input::placeholder { color: #999; font-style: italic; }
 
-        /* --- 数据条目 (Library Mode) --- */
+        .nav-tree {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        /* Accordion Items */
+        .acc-item { border-bottom: 1px solid var(--color-line); }
+        
+        .acc-header {
+            padding: var(--space-unit);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background 0.2s;
+        }
+        .acc-header:hover { background-color: var(--color-highlight); }
+        
+        .acc-icon { font-weight: normal; font-size: 16px; }
+
+        .acc-count { 
+            font-weight: normal; 
+            font-size: 11px; 
+            color: #666; 
+            margin-right: 8px; 
+        }
+
+        .acc-body {
+            display: none;
+            background-color: #fff;
+        }
+        .acc-item.open .acc-body { display: block; }
+        .acc-item.open .acc-header { border-bottom: 1px solid var(--color-line); }
+
+        /* College List */
+        .college-item {
+            padding: 12px var(--space-unit);
+            padding-left: 32px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--color-line);
+            display: flex;
+            justify-content: space-between;
+            color: #555;
+        }
+        .college-item:hover { color: #000; text-decoration: underline; }
+        .college-item.active {
+            background-color: #000;
+            color: #fff;
+            text-decoration: none;
+        }
+        .college-count { font-size: 10px; opacity: 0.6; }
+
+        /* --- MAIN CONTENT --- */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Header Stats */
+        .content-header {
+            padding: var(--space-unit);
+            border-bottom: 1px solid var(--color-text);
+            height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: #fff;
+        }
+
+        .breadcrumb { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px;}
+        .main-title { font-size: 24px; font-weight: normal; margin-top: 4px; }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            font-size: 11px;
+            margin-top: auto;
+        }
+        .stat-box strong { display: block; font-size: 16px; font-weight: normal; margin-top: 4px; }
+        .stat-label { color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Data List */
+        .data-container {
+            flex: 1;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .data-table-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 12px var(--space-unit);
+            border-bottom: 1px solid var(--color-text);
+            font-weight: bold;
+            font-size: 11px;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            background: #fff;
+            z-index: 5;
+        }
+
         .data-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 16px var(--space-unit);
+            border-bottom: 1px solid var(--color-line);
+            transition: background 0.1s;
+        }
+        .data-row:hover { background-color: var(--color-highlight); }
+        .data-row .cell-name { font-weight: 500; }
+        .data-row .cell-emission { font-family: "Courier New", Courier, monospace; }
+        .data-row .cell-notes { font-style: italic; color: #666; font-size: 11px; }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+        }
+        .empty-state h2 { font-weight: normal; margin-bottom: 16px; color: #000; }
+        .empty-state p { max-width: 400px; line-height: 1.6; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #fff; border-left: 1px solid var(--color-line); }
+        ::-webkit-scrollbar-thumb { background: #ccc; }
+        ::-webkit-scrollbar-thumb:hover { background: #000; }
+
+    </style>
+</head>
+<body>
+
+    <canvas id="noise-canvas"></canvas>
+
+    <div id="app">
+        <aside>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search index...">
+            </div>
+            <div class="nav-tree" id="nav-tree">
+                </div>
+        </aside>
+
+        <main id="main-content">
+            <div class="empty-state">
+                <h2>Carbon Emission Index</h2>
+                <p>Select a category and college from the left to view the archive.</p>
+                <br>
+                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Data Sources: 2023 Audit</span>
+            </div>
+        </main>
+    </div>
+
+<script>
+    /**
+     * DATA SECTION
+     * To update data: Replace the content of RAW_DATA with new JSON.
+     * Ensure fields: category, college, name, emission (number), unit, notes.
+     */
+    const RAW_DATA = [{"category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 49.2982, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Standard Desktop PC", "emission": 78.0727, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Standard Desktop PC", "emission": 69.4094, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Standard Desktop PC", "emission": 52.186, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Non-Standard PCs", "emission": 8.6634, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Non-Standard PCs", "emission": 79.826, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Non-Standard PCs", "emission": 37.3347, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Screens", "emission": 27.5604, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Screens", "emission": 47.8173, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Screens", "emission": 36.1867, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Screens", "emission": 28.3046, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Laptops", "emission": 12.6174, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Laptops", "emission": 17.9096, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Laptops", "emission": 12.5367, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Laptops", "emission": 10.3747, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "VOIP Desktop Phones", "emission": 0.3702, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "VOIP Desktop Phones", "emission": 0.3317, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "VOIP Desktop Phones", "emission": 0.2622, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "VOIP Desktop Phones", "emission": 0.4165, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones", "emission": 0.1669, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Smartphones", "emission": 0.1473, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Smartphones", "emission": 0.1183, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Smartphones", "emission": 0.1888, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Tablets", "emission": 0.7043, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Tablets", "emission": 0.6213, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Tablets", "emission": 0.5001, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Tablets", "emission": 0.7928, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Laserjet Printers", "emission": 4.5181, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Laserjet Printers", "emission": 4.0252, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Laserjet Printers", "emission": 2.6287, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Laserjet Printers", "emission": 5.0111, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 251.7, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 182.14, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 129.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones & Tablets", "emission": 15.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Smartphones & Tablets", "emission": 13.42, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Smartphones & Tablets", "emission": 10.79, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Smartphones & Tablets", "emission": 17.15, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Printers", "emission": 2.06, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Printers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Printers", "emission": 1.2, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Printers", "emission": 2.29, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "Routers", "emission": 0.3598, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Routers", "emission": 0.3144, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Routers", "emission": 0.3275, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Switches", "emission": 49.3679, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Switches", "emission": 116.6569, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 60.1882, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Switches", "emission": 54.9471, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Wireless Network", "emission": 7.8009, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Wireless Network", "emission": 10.0713, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Wireless Network", "emission": 5.9749, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Wireless Network", "emission": 23.194, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "LAN 10GBBASET-t Ethernet", "emission": 2.8403, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "LAN 10GBBASET-t Ethernet", "emission": 6.7118, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.4629, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.1613, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Switches", "emission": 37.8712, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 35.1661, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Hardware Firewalls", "emission": 0.1704, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Hardware Firewalls", "emission": 0.0791, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Optical Fibre", "emission": 61.6792, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Optical Fibre", "emission": 138.0162, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Optical Fibre", "emission": 13.7309, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Optical Fibre", "emission": 88.7821, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "LAN Embodied Emissions Estimate", "emission": 8.37, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "LAN Embodied Emissions Estimate", "emission": 18.28, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCC", "name": "LAN Embodied Emissions Estimate", "emission": 9.41, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "CCW", "name": "LAN Embodied Emissions Estimate", "emission": 13.9, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "WAN Embodied Emissions Estimate", "emission": 7.24, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCC", "name": "WAN Embodied Emissions Estimate", "emission": 7.22, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "CCW", "name": "WAN Embodied Emissions Estimate", "emission": 0.02, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Chassis / Cabinets", "emission": 0.1718, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Chassis / Cabinets", "emission": 0.2061, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Chassis / Cabinets", "emission": 0.2746, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 0.0344, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Tower Servers", "emission": 0.3752, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Tower Servers", "emission": 0.1876, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Tower Servers", "emission": 0.0938, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Tower Servers", "emission": 0.0938, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Servers", "emission": 0.2943, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Servers", "emission": 0.2943, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Servers", "emission": 0.5888, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.8071, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 1.6144, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 2.8251, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 1.2848, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 0.6424, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 0.2141, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "RAID Controller Cards", "emission": 0.2517, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "RAID Controller Cards", "emission": 0.1258, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "RAID Controller Cards", "emission": 0.0419, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Chassis / Cabinets", "emission": 0.6, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Chassis / Cabinets", "emission": 0.72, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Chassis / Cabinets", "emission": 0.96, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 0.12, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Tower Servers", "emission": 0.29, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Tower Servers", "emission": 0.14, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Tower Servers", "emission": 0.07, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Tower Servers", "emission": 0.07, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Servers", "emission": 0.13, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Servers", "emission": 0.13, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Servers", "emission": 0.36, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 0.5, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 0.88, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 2.72, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}];
+
+    // Global State
+    let state = {
+        category: null,
+        college: null,
+        search: ""
+    };
+
+    // DOM Elements
+    const dom = {
+        navTree: document.getElementById('nav-tree'),
+        mainContent: document.getElementById('main-content'),
+        searchInput: document.getElementById('search-input'),
+        noiseCanvas: document.getElementById('noise-canvas')
+    };
+
+    /**
+     * INITIALIZATION
+     */
+    function init() {
+        renderSidebar();
+        initNoise();
+        
+        // Event Listeners
+        dom.searchInput.addEventListener('input', (e) => {
+            state.search = e.target.value.toLowerCase();
+            if (state.category && state.college) {
+                renderMainContent();
+            }
+        });
+    }
+
+    /**
+     * SIDEBAR RENDER LOGIC
+     */
+    function renderSidebar() {
+        // Group Data
+        const categories = [...new Set(RAW_DATA.map(d => d.category))];
+        const colleges = ["CSM", "LCF", "LCC", "CCW"]; // Fixed order
+
+        dom.navTree.innerHTML = '';
+
+        categories.forEach(cat => {
+            // Calculate Count
+            const catCount = RAW_DATA.filter(d => d.category === cat).length;
+
+            const accItem = document.createElement('div');
+            accItem.className = 'acc-item';
+            
+            // Header
+            const header = document.createElement('div');
+            header.className = 'acc-header';
+            header.innerHTML = `
+                <span>${cat}</span>
+                <div style="display:flex; align-items:center;">
+                    <span class="acc-count">${catCount}</span>
+                    <span class="acc-icon">+</span>
+                </div>
+            `;
+            header.onclick = () => toggleAccordion(accItem, header);
+
+            // Body
+            const body = document.createElement('div');
+            body.className = 'acc-body';
+
+            colleges.forEach(col => {
+                const colCount = RAW_DATA.filter(d => d.category === cat && d.college === col).length;
+                const colItem = document.createElement('div');
+                colItem.className = 'college-item';
+                colItem.innerHTML = `
+                    <span>${col}</span>
+                    <span class="college-count">${colCount}</span>
+                `;
+                colItem.onclick = () => selectCollege(cat, col, colItem);
+                colItem.dataset.id = `${cat}-${col}`; // For active state
+                body.appendChild(colItem);
+            });
+
+            accItem.appendChild(header);
+            accItem.appendChild(body);
+            dom.navTree.appendChild(accItem);
+        });
+    }
+
+    function toggleAccordion(item, header) {
+        const isOpen = item.classList.contains('open');
+        // Close others if needed (optional, keeping independent here)
+        // item.classList.toggle('open');
+        
+        // Toggle Icon
+        const icon = header.querySelector('.acc-icon');
+        if (isOpen) {
+            item.classList.remove('open');
+            icon.textContent = '+';
+        } else {
+            item.classList.add('open');
+            icon.textContent = '–'; // En dash
+        }
+    }
+
+    function selectCollege(cat, col, el) {
+        // Update State
+        state.category = cat;
+        state.college = col;
+
+        // Update UI Highlights
+        document.querySelectorAll('.college-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+
+        // Render Main
+        renderMainContent();
+    }
+
+    /**
+     * MAIN CONTENT RENDER LOGIC
+     */
+    function renderMainContent() {
+        // Filter Data
+        let filtered = RAW_DATA.filter(d => 
+            d.category === state.category && 
+            d.college === state.college
+        );
+
+        // Search Filter
+        if (state.search) {
+            filtered = filtered.filter(d => 
+                d.name.toLowerCase().includes(state.search) || 
+                d.notes.toLowerCase().includes(state.search)
+            );
+        }
+
+        // Stats
+        const totalEmission = filtered.reduce((sum, d) => sum + d.emission, 0);
+        const avgEmission = filtered.length ? totalEmission / filtered.length : 0;
+        const maxEmission = filtered.length ? Math.max(...filtered.map(d => d.emission)) : 0;
+        const minEmission = filtered.length ? Math.min(...filtered.map(d => d.emission)) : 0;
+
+        // HTML Construction
+        let html = `
+            <div class="content-header">
+                <div>
+                    <div class="breadcrumb">${state.category} / ${state.college}</div>
+                    <div class="main-title">Emission Report</div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><span class="stat-label">Total (tCO₂e)</span> <strong>${totalEmission.toFixed(2)}</strong></div>
+                    <div class="stat-box"><span class="stat-label">Average</span> <strong>${avgEmission.toFixed(3)}</strong></div>
+                    <div class="stat-box"><span class="stat-label">Max</span> <strong>${maxEmission.toFixed(3)}</strong></div>
+                    <div class="stat-box"><span class="stat-label">Items</span> <strong>${filtered.length}</strong></div>
+                </div>
+            </div>
+            
+            <div class="data-table-header">
+                <div>Item Name</div>
+                <div>Emission (tCO₂e)</div>
+                <div>Date</div>
+                <div>Context</div>
+            </div>
+
+            <div class="data-container" id="scroll-container">
+                <div id="data-list"></div>
+            </div>
+        `;
+
+        dom.mainContent.innerHTML = html;
+
+        // Infinite Scroll Logic (Simple Chunking)
+        const listEl = document.getElementById('data-list');
+        const scrollContainer = document.getElementById('scroll-container');
+        
+        let renderedCount = 0;
+        const CHUNK_SIZE = 20;
+
+        function renderChunk() {
+            const chunk = filtered.slice(renderedCount, renderedCount + CHUNK_SIZE);
+            chunk.forEach(d => {
+                const row = document.createElement('div');
+                row.className = 'data-row';
+                row.innerHTML = `
+                    <div class="cell-name">${d.name}</div>
+                    <div class="cell-emission">${d.emission.toFixed(4)}</div>
+                    <div class="cell-date">${d.date}</div>
+                    <div class="cell-notes">${d.notes}</div>
+                `;
+                listEl.appendChild(row);
+            });
+            renderedCount += chunk.length;
+        }
+
+        // Initial Chunk
+        renderChunk();
+
+        // Scroll Listener
+        scrollContainer.addEventListener('scroll', () => {
+            if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 50) {
+                if (renderedCount < filtered.length) {
+                    renderChunk();
+                }
+            }
+        });
+    }
+
+    /**
+     * VISUAL FX: NOISE
+     */
+    function initNoise() {
+        const canvas = dom.noiseCanvas;
+        const ctx = canvas.getContext('2d');
+        
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', resize);
+        resize();
+
+        function loop() {
+            const w = canvas.width;
+            const h = canvas.height;
+            const idata = ctx.createImageData(w, h);
+            const buffer32 = new Uint32Array(idata.data.buffer);
+            const len = buffer32.length;
+
+            for (let i = 0; i < len; i++) {
+                if (Math.random() < 0.1) { // 10% noise density
+                    buffer32[i] = 0xff000000; // Black noise
+                }
+            }
+            ctx.putImageData(idata, 0, 0);
+            setTimeout(loop, 100); // 10fps
+        }
+        loop();
+    }
+
+    // Run
+    init();
+
+</script>
+</body>
+</html>
