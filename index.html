@@ -1,22 +1,24 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ENTROPY ARCHIVE | 熵增档案馆</title>
+    <title>UAL CARBON ARCHIVE | ENTROPY MODE</title>
     <style>
-        /* --- 0. 全局变量与复古/废土风格定义 --- */
         :root {
-            --bg-color: #F2F2F2;
+            /* --- 理性模式变量 --- */
+            --bg-color: #F4F4F4;
             --text-color: #111;
             --line-color: #CCC;
             --accent-color: #000;
+            --sidebar-width: 320px;
             --font-main: 'Helvetica Neue', Helvetica, Arial, sans-serif;
             --font-mono: 'Courier New', Courier, monospace;
-            
-            /* 废土模式变量 */
-            --waste-bg: #050505;
-            --waste-text: #AAA;
+            --header-height: 140px;
+
+            /* --- 垃圾场模式变量 --- */
+            --waste-bg: #111;
+            --waste-text: #888;
             --waste-accent: #FF3333;
         }
 
@@ -26,276 +28,415 @@
             font-family: var(--font-main);
             background-color: var(--bg-color);
             color: var(--text-color);
+            display: flex;
             height: 100vh;
             overflow: hidden;
-            transition: background-color 0.8s ease, color 0.8s ease;
+            /* 噪点纹理 */
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+            transition: background-color 1.5s cubic-bezier(0.25, 1, 0.5, 1), color 1s;
         }
 
-        /* 噪点纹理层 (增强物质感) */
-        .noise-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.08'/%3E%3C/svg%3E");
-            pointer-events: none;
-            z-index: 9999;
-            mix-blend-mode: multiply;
+        /* --- 侧边栏 (Sidebar) --- */
+        #sidebar {
+            width: var(--sidebar-width);
+            height: 100%;
+            border-right: 1px solid var(--line-color);
+            background: rgba(244, 244, 244, 0.95);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 100; /* 提高层级 */
+            user-select: none;
+            transition: background 1s, border-color 1s;
         }
 
-        /* --- 1. 左上角 Sticky 控制区 --- */
-        #control-panel {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            width: 280px;
-            background: rgba(242, 242, 242, 0.95);
-            border: 1px solid var(--text-color);
-            padding: 15px;
-            z-index: 1000;
-            backdrop-filter: blur(5px);
-            box-shadow: 5px 5px 0px rgba(0,0,0,0.1);
-            transition: all 0.5s;
+        .sidebar-top {
+            padding: 20px;
+            border-bottom: 1px solid var(--line-color);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
-        .panel-header {
+        /* --- 新增：能耗控制面板样式 --- */
+        .energy-panel {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #666;
+            padding-bottom: 10px;
+            border-bottom: 1px dashed #ccc;
+        }
+
+        .energy-row {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #999;
-            padding-bottom: 10px;
+            margin-bottom: 4px;
         }
 
+        .energy-val { font-weight: bold; color: var(--text-color); }
+
         .btn-toggle {
+            width: 100%;
+            padding: 10px;
             background: var(--text-color);
             color: var(--bg-color);
             border: none;
-            padding: 6px 12px;
             font-family: var(--font-mono);
             font-size: 12px;
             cursor: pointer;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.2s;
+            transition: all 0.3s;
         }
+        
+        .btn-toggle:hover { opacity: 0.8; }
 
-        .btn-toggle:hover {
-            transform: translateY(-2px);
-            box-shadow: 2px 2px 5px rgba(0,0,0,0.2);
-        }
-
-        .energy-monitor {
+        /* --- 原有导航样式 --- */
+        .search-box {
+            width: 100%;
+            padding: 8px 0;
+            border: none;
+            border-bottom: 1px solid #999;
+            background: transparent;
             font-family: var(--font-mono);
-            font-size: 11px;
-            line-height: 1.6;
-            color: #444;
+            font-size: 13px;
+            outline: none;
+            text-transform: uppercase;
+        }
+        
+        .search-box::placeholder { color: #999; }
+
+        .path-indicator {
+            margin-top: 10px;
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: #666;
+            height: 12px;
         }
 
-        .monitor-row {
+        .nav-list { flex: 1; overflow-y: auto; list-style: none; }
+        .nav-category { border-bottom: 1px solid var(--line-color); }
+
+        .category-header {
+            padding: 15px 20px;
+            cursor: pointer;
             display: flex;
             justify-content: space-between;
+            align-items: center;
+            font-weight: 600;
+            font-size: 13px;
+            transition: background 0.2s;
         }
+        .category-header:hover { background: #fff; }
+        .category-header .meta { font-family: var(--font-mono); font-size: 11px; color: #888; }
 
-        .monitor-val { font-weight: bold; color: var(--text-color); }
-        
-        .mapping-alert {
-            margin-top: 10px;
-            padding-top: 5px;
-            border-top: 1px dashed #999;
-            font-style: italic;
-            min-height: 1.5em;
-            color: var(--waste-accent);
-        }
+        .college-list { display: none; background: #fff; list-style: none; box-shadow: inset 0 2px 5px rgba(0,0,0,0.02); }
+        .college-item { padding: 12px 20px 12px 35px; font-size: 13px; color: #555; cursor: pointer; border-top: 1px solid #f0f0f0; display: flex; justify-content: space-between; transition: all 0.2s; }
+        .college-item:hover { background: #f8f8f8; color: #000; padding-left: 40px; }
+        .college-item.active { background: var(--accent-color); color: #fff; }
+        .college-item .count { font-family: var(--font-mono); font-size: 10px; opacity: 0.5; }
 
-        /* --- 2. 主容器 --- */
-        #app-container {
-            width: 100%;
-            height: 100%;
-            overflow-y: scroll;
-            padding: 180px 40px 100px 340px; 
+        /* --- 主区域 (Main) --- */
+        #main-view {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
             position: relative;
+            overflow: hidden;
+            transition: background 1s;
+        }
+
+        .summary-header {
+            height: var(--header-height);
+            padding: 30px 40px;
+            border-bottom: 1px solid var(--line-color);
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            background: rgba(244,244,244,0.8);
+            backdrop-filter: blur(10px);
+            z-index: 5;
+            transition: background 1s, border-color 1s;
+        }
+
+        .summary-title { font-size: 20px; font-weight: 300; letter-spacing: 1px; }
+        
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: #666;
+            margin-top: 20px;
+        }
+
+        .stat-val { display: block; font-size: 16px; color: #000; margin-top: 4px; font-weight: 600; }
+
+        /* --- 列表区域与垃圾桶物理效果 --- */
+        #data-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 40px 60px 40px;
             scroll-behavior: smooth;
         }
 
-        #archive-list {
+        #listBody {
             position: relative;
-            max-width: 1000px;
-            perspective: 1000px; 
+            min-height: 100vh;
+            /* 3D 透视，让下落更有空间感 */
+            perspective: 1000px;
         }
 
-        /* --- 3. 条目样式 (Library Mode) --- */
-        .data-row {
-            position: relative;
+        .data-table-header {
             display: grid;
-            grid-template-columns: 3fr 1fr 1fr 2fr; 
+            grid-template-columns: 3fr 1fr 1fr 2fr;
             gap: 20px;
-            padding: 15px 10px;
+            padding: 15px 0;
+            border-bottom: 2px solid #000;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            text-transform: uppercase;
+            color: #666;
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            z-index: 20;
+            transition: background 1s, border-color 1s;
+        }
+
+        .data-row {
+            position: relative; /* 必须是 relative 以便 transform 生效 */
+            display: grid;
+            grid-template-columns: 3fr 1fr 1fr 2fr;
+            gap: 20px;
+            padding: 18px 0;
             border-bottom: 1px solid var(--line-color);
             font-size: 13px;
             align-items: baseline;
-            background: var(--bg-color);
-            z-index: 10;
-            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.5s ease;
-            transform-origin: center left;
+            transition: opacity 0.3s;
+            cursor: default;
+            background: var(--bg-color); /* 默认背景 */
+            
+            /* 关键动画：模拟重力下落的贝塞尔曲线 */
+            transition: 
+                transform 1.2s cubic-bezier(0.6, 0.04, 0.98, 0.335),
+                background-color 1s,
+                width 1s,
+                border-color 1s;
+            transform-origin: center center;
+            will-change: transform;
         }
 
-        .data-row:hover { background: #fff; }
-        .col-name { font-weight: 600; }
-        .col-emission { font-family: var(--font-mono); }
-        .col-meta { color: #888; font-size: 11px; }
+        .data-row:hover { background: rgba(255,255,255,0.6); }
 
-        /* --- 4. 垃圾场模式 (Waste Mode) --- */
+        .col-emission { font-family: var(--font-mono); font-weight: 700; }
+        .col-date { font-family: var(--font-mono); color: #888; }
+        .col-notes { font-size: 12px; color: #777; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- 状态页 --- */
+        .empty-state {
+            height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: #AAA; font-family: var(--font-mono); letter-spacing: 1px; text-align: center;
+        }
+        .empty-icon { font-size: 40px; margin-bottom: 20px; opacity: 0.2; }
+
+        /* --- 🗑️ 垃圾场模式 (Bin Mode) 样式覆盖 --- */
+        
         body.mode-waste {
             background-color: var(--waste-bg);
             color: var(--waste-text);
         }
 
-        body.mode-waste #control-panel {
-            background: #000;
-            border-color: #555;
+        /* 侧边栏变黑 */
+        body.mode-waste #sidebar {
+            background: #0a0a0a;
+            border-color: #333;
+        }
+        
+        body.mode-waste .category-header:hover,
+        body.mode-waste .college-list,
+        body.mode-waste .college-item:hover {
+            background: #222;
             color: #eee;
         }
         
-        body.mode-waste .btn-toggle {
-            background: #eee; color: #000;
+        body.mode-waste .summary-header {
+            background: rgba(10,10,10,0.9);
+            border-color: #333;
         }
         
-        body.mode-waste .energy-monitor { color: #777; }
-        body.mode-waste .monitor-val { color: #eee; }
+        body.mode-waste .stat-val { color: #eee; }
+        body.mode-waste .data-table-header { background: #0a0a0a; border-color: #555; }
+        body.mode-waste .btn-toggle { background: #333; color: #fff; border: 1px solid #555; }
+        body.mode-waste .energy-val { color: var(--waste-accent); }
 
-        /* 文字崩塌效果 */
+        /* 核心：数据条目下落堆叠 */
         body.mode-waste .data-row {
-            background: transparent;
-            border-bottom: none;
-            color: #444;
-            transform: translate(var(--rand-x, 0px), var(--rand-y, 0px)) rotate(var(--rand-r, 0deg));
-            opacity: 0.3;
-            pointer-events: none; /* 崩塌后不可点击 */
+            background: #111;
+            border-bottom: 1px solid #333;
+            color: #555;
+            
+            /* 应用 JS 计算的下落变量 */
+            transform: 
+                translate3d(var(--fall-x), var(--fall-y), 0) 
+                rotate(var(--fall-r)) 
+                scaleX(var(--crumple-s)); /* 变窄=揉皱 */
+            
+            width: 280px; /* 物理变窄 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            pointer-events: none; /* 变成垃圾后不可点击 */
         }
 
-        /* --- 5. 垃圾物品 (Unsplash Images) --- */
+        /* --- 🗑️ 垃圾物品 (AI Images) --- */
         .waste-item {
             position: absolute;
             display: flex;
             justify-content: center;
             align-items: center;
             overflow: hidden;
-            background: #111; /* 图片未加载时的背景 */
-            border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 10px 10px 40px rgba(0,0,0,0.9);
+            background: #000;
+            border: 1px solid rgba(255,255,255,0.15);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.9);
             
-            /* 初始动画 */
+            /* 从天而降动画 */
             opacity: 0;
-            transform: scale(0.5) translateY(-50px);
-            animation: trashDrop 0.6s forwards cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform: translateY(-100vh) rotate(0deg);
+            animation: heavyDrop 0.8s forwards cubic-bezier(0.25, 1, 0.5, 1);
             z-index: 50; 
         }
 
         .waste-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            /* 关键：强制黑白高对比度滤镜，模拟废土感 */
-            filter: grayscale(100%) contrast(150%) brightness(0.8);
-            transition: opacity 0.5s;
+            width: 100%; height: 100%; object-fit: cover;
+            filter: grayscale(100%) contrast(140%) brightness(0.8);
         }
-        
+
         .waste-label {
             position: absolute;
-            bottom: 0;
-            right: 0;
-            background: #000;
-            color: #FFF;
-            padding: 2px 4px;
-            font-family: var(--font-mono);
-            font-size: 9px;
-            border-top: 1px solid #FFF;
-            border-left: 1px solid #FFF;
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: #000; color: #fff; padding: 2px 5px;
+            font-family: var(--font-mono); font-size: 10px;
+            border: 1px solid #fff;
         }
 
-        @keyframes trashDrop {
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-
-        .loading-sentinel {
-            padding: 40px; text-align: center; color: #666; font-family: var(--font-mono);
-        }
-        
-        .empty-intro {
-            padding: 40px; border: 1px dashed #999; margin-bottom: 20px; font-family: var(--font-mono); font-size: 12px;
+        @keyframes heavyDrop {
+            to { opacity: 1; transform: translateY(0) rotate(var(--rot)); }
         }
 
     </style>
 </head>
 <body>
 
-    <div class="noise-overlay"></div>
+    <aside id="sidebar">
+        <div class="sidebar-top">
+            <div class="energy-panel">
+                <div class="energy-row">
+                    <span>TIME</span><span id="dispTime" class="energy-val">00:00</span>
+                </div>
+                <div class="energy-row">
+                    <span>SCROLL</span><span id="dispScroll" class="energy-val">0 px</span>
+                </div>
+                <div class="energy-row">
+                    <span>ENERGY</span><span id="dispEnergy" class="energy-val">0.000 Wh</span>
+                </div>
+                <div class="energy-row" style="margin-top:5px; font-size:10px; color:#999;">
+                    <span id="dispMapping">System Stable</span>
+                </div>
+            </div>
+            
+            <button id="btnToggle" class="btn-toggle">SWITCH TO WASTE</button>
 
-    <div id="control-panel">
-        <div class="panel-header">
-            <h1 style="font-size:14px; text-transform:uppercase; letter-spacing:1px;">UAL Energy Audit</h1>
-            <button id="btnToggle" class="btn-toggle">SWITCH MODE</button>
+            <input type="text" id="searchInput" class="search-box" placeholder="FILTER DATA..." disabled>
+            <div id="pathDisplay" class="path-indicator">ARCHIVE / ROOT</div>
         </div>
         
-        <div class="energy-monitor">
-            <div class="monitor-row">
-                <span>SESSION TIME</span>
-                <span id="dispTime" class="monitor-val">00:00</span>
-            </div>
-            <div class="monitor-row">
-                <span>SCROLL PIXELS</span>
-                <span id="dispScroll" class="monitor-val">0 px</span>
-            </div>
-            <div class="monitor-row">
-                <span>DATA RENDERED</span>
-                <span id="dispData" class="monitor-val">0 items</span>
-            </div>
-            <div style="margin:10px 0; border-bottom:1px solid #ccc;"></div>
-            <div class="monitor-row" style="font-size:12px;">
-                <span>YOUR FOOTPRINT</span>
-                <span id="dispEnergy" class="monitor-val" style="color:var(--waste-accent)">0.000 Wh</span>
-            </div>
-            <div class="mapping-alert" id="dispMapping">
-                System Initialized.
-            </div>
-        </div>
-    </div>
+        <ul id="navList" class="nav-list">
+            </ul>
+    </aside>
 
-    <div id="app-container">
-        <div class="empty-intro" id="introText">
-            [ARCHIVE PROTOCOL]<br><br>
-            SCROLL TO EXPLORE INSTITUTIONAL DATA.<br>
-            EVERY PIXEL SCROLLED CONSUMES ENERGY.<br>
-            SWITCH MODE TO VISUALIZE THE PHYSICAL COST.
+    <main id="main-view">
+        <div id="emptyState" class="empty-state">
+            <div class="empty-icon">📂</div>
+            <div>SELECT A CATEGORY & COLLEGE<br>TO ACCESS ARCHIVE</div>
         </div>
-        <div id="archive-list"></div>
-        <div class="loading-sentinel" id="sentinel">LOADING DATA...</div>
-    </div>
+
+        <div id="contentArea" style="display:none; height:100%; flex-direction:column;">
+            <header class="summary-header">
+                <h1 id="headerTitle" class="summary-title">Title</h1>
+                <div class="summary-stats">
+                    <div>ITEMS <span id="statCount" class="stat-val">0</span></div>
+                    <div>TOTAL EMISSION <span id="statSum" class="stat-val">0</span></div>
+                    <div>AVG EMISSION <span id="statAvg" class="stat-val">0</span></div>
+                    <div>MAX ITEM <span id="statMax" class="stat-val">0</span></div>
+                </div>
+            </header>
+
+            <div id="data-container">
+                <div class="data-table-header">
+                    <div>Item Name</div>
+                    <div>Emission</div>
+                    <div>Year</div>
+                    <div>Context / Notes</div>
+                </div>
+                
+                <div id="listBody"></div>
+                
+                <div id="loading" style="padding:20px; text-align:center; font-family:monospace; color:#999; display:none;">
+                    LOADING FRAGMENTS...
+                </div>
+            </div>
+        </div>
+    </main>
 
 <script>
-    // --- 0. 模拟数据 ---
-    const ARCHIVE_DATA = [
-        {"name": "Standard Desktop PC (CSM)", "emission": 255431, "unit": "kWh", "notes": "Annualised power usage"},
-        {"name": "Optical Fibre WAN (LCC)", "emission": 71144, "unit": "kWh", "notes": "Data Centre to Office"},
-        {"name": "Rack Chassis Cabinets (CCW)", "emission": 178, "unit": "kWh", "notes": "Standard Specification"},
-        {"name": "High Spec GPU Servers (LCF)", "emission": 14638, "unit": "kWh", "notes": "AI & Rendering"},
-        {"name": "Laserjet Printers (All)", "emission": 83850, "unit": "kWh", "notes": "Total annual usage"},
-        {"name": "VoIP Phones (Network)", "emission": 613, "unit": "tCO2e", "notes": "Embodied Carbon"},
-        {"name": "Cooling System PUE 1.6", "emission": 0, "unit": "Ratio", "notes": "Inefficiency overhead"}
+    // --- 0. 本地 AI 图片列表 (请确保图片存在) ---
+    const LOCAL_AI_IMAGES = [
+        "trash1.jpg", "trash2.jpg", "trash3.jpg", 
+        "trash4.jpg", "trash5.jpg", "trash6.jpg"
     ];
 
-    // --- 1. 精选 UNSPLASH 图片库 (硬编码 ID，保证稳定) ---
-    // 这些图片涵盖：电子垃圾、塑料瓶、故障纹理、工业废墟、电线
-    const UNSPLASH_GALLERY = [
-        "1611284446314-60a58ac0deb9", // E-waste pile
-        "1530587191325-3db32d826c18", // Plastic bottle
-        "1591405351990-4726e331f141", // Circuit board
-        "1518709268805-4e9042af9f23", // Pipes and wires
-        "1482160549825-59d1b23cb208", // Broken screen/glitch
-        "1542204165-65bf26472b9b",    // Static noise
-        "1621451537084-482c73073a0f", // Plastic waste
-        "1550989460-0adf9ea622e2",    // Hardware closeup
-        "1569245588325-412f8541c6d3", // Glitch text
-        "1526951521990-620dc14c214b"  // Electronic components
+    // --- 1. 数据 (完整版) ---
+    const RAW_DATA = [
+        {"id": 77, "category": "Cloud, storage and hosting", "college": "CCW", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "kgCO2e", "date": "2023", "notes": "Location - Region / State"},
+        {"id": 81, "category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 178.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 104, "category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 0.12, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate for Hardware (annualised / pro-rated in tCO2e)"},
+        {"id": 85, "category": "Cloud, storage and hosting", "college": "CCW", "name": "Tower Servers", "emission": 486.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 92, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 3328.56, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 115, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate for Hardware (annualised / pro-rated in tCO2e)"},
+        {"id": 98, "category": "Cloud, storage and hosting", "college": "CSM", "name": "HDD", "emission": 46011.0, "unit": "kWh", "date": "2023", "notes": "Storage - Annualised power usage estimate (kWh)"},
+        {"id": 89, "category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 8365.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 74, "category": "Cloud, storage and hosting", "college": "CSM", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "kgCO2e", "date": "2023", "notes": "Location - Region / State"},
+        {"id": 78, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Chassis / Cabinets", "emission": 1068.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 86, "category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Servers", "emission": 1525.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 94, "category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 6657.12, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 117, "category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 2.72, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate for Hardware (annualised / pro-rated in tCO2e)"},
+        {"id": 100, "category": "Cloud, storage and hosting", "college": "LCC", "name": "HDD", "emission": 46011.0, "unit": "kWh", "date": "2023", "notes": "Storage - Annualised power usage estimate (kWh)"},
+        {"id": 91, "category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 4182.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 93, "category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1109.52, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 99, "category": "Cloud, storage and hosting", "college": "LCF", "name": "HDD", "emission": 46011.0, "unit": "kWh", "date": "2023", "notes": "Storage - Annualised power usage estimate (kWh)"},
+        {"id": 90, "category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 14638.0, "unit": "kWh", "date": "2023", "notes": "Standard Specification Servers - Annualised power usage estimate (kWh)"},
+        {"id": 35, "category": "Computer, print and audio", "college": "CCW", "name": "Desktops & VOIP Phones", "emission": 129.21, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate"},
+        {"id": 15, "category": "Computer, print and audio", "college": "CCW", "name": "Laptops", "emission": 53755.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 31, "category": "Computer, print and audio", "college": "CCW", "name": "Laserjet Printers", "emission": 25964.0, "unit": "kWh", "date": "2023", "notes": "Printers - Annualised power usage estimate (kWh)"},
+        {"id": 11, "category": "Computer, print and audio", "college": "CCW", "name": "Screens", "emission": 146656.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 4, "category": "Computer, print and audio", "college": "CCW", "name": "Standard Desktop PC", "emission": 270394.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 32, "category": "Computer, print and audio", "college": "CSM", "name": "Desktops & VOIP Phones", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate"},
+        {"id": 12, "category": "Computer, print and audio", "college": "CSM", "name": "Laptops", "emission": 65375.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 28, "category": "Computer, print and audio", "college": "CSM", "name": "Laserjet Printers", "emission": 23410.0, "unit": "kWh", "date": "2023", "notes": "Printers - Annualised power usage estimate (kWh)"},
+        {"id": 8, "category": "Computer, print and audio", "college": "CSM", "name": "Screens", "emission": 142800.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 1, "category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 255431.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 34, "category": "Computer, print and audio", "college": "LCC", "name": "Desktops & VOIP Phones", "emission": 182.14, "unit": "tCO2e", "date": "2023", "notes": "Total Embodied Carbon Estimate"},
+        {"id": 14, "category": "Computer, print and audio", "college": "LCC", "name": "Laptops", "emission": 64957.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 3, "category": "Computer, print and audio", "college": "LCC", "name": "Standard Desktop PC", "emission": 359634.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 13, "category": "Computer, print and audio", "college": "LCF", "name": "Laptops", "emission": 92796.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 2, "category": "Computer, print and audio", "college": "LCF", "name": "Standard Desktop PC", "emission": 404522.0, "unit": "kWh", "date": "2023", "notes": "Annualised power usage estimate (kWh)"},
+        {"id": 66, "category": "Network and telephony", "college": "CCW", "name": "Optical Fibre (Data Centre)", "emission": 460011.09, "unit": "kWh", "date": "2023", "notes": "Wide Area Network (WAN)"},
+        {"id": 50, "category": "Network and telephony", "college": "CCW", "name": "Switches", "emission": 284700.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
+        {"id": 54, "category": "Network and telephony", "college": "CCW", "name": "Wireless Network", "emission": 120176.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
+        {"id": 63, "category": "Network and telephony", "college": "CSM", "name": "Optical Fibre (Data Centre)", "emission": 319581.4, "unit": "kWh", "date": "2023", "notes": "Wide Area Network (WAN)"},
+        {"id": 47, "category": "Network and telephony", "college": "CSM", "name": "Switches", "emission": 255792.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
+        {"id": 51, "category": "Network and telephony", "college": "CSM", "name": "Wireless Network", "emission": 40419.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"},
+        {"id": 65, "category": "Network and telephony", "college": "LCC", "name": "Optical Fibre (Data Centre)", "emission": 71144.33, "unit": "kWh", "date": "2023", "notes": "Wide Area Network (WAN)"},
+        {"id": 49, "category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 311856.0, "unit": "kWh", "date": "2023", "notes": "Local Area Network (LAN)"}
     ];
 
     // --- 2. 配置 ---
@@ -303,8 +444,6 @@
         baseCostPerSec: 0.05,
         scrollCostPerPx: 0.002,
         dataRenderCost: 0.01,
-        
-        // 映射逻辑：达到一定能耗，随机抽取一张图片
         mapping: [
             { threshold: 0.5, name: "ENERGY SPIKE" },
             { threshold: 2.0, name: "PHONE CHARGE" },
@@ -314,167 +453,317 @@
         ]
     };
 
+    // --- 3. 状态管理 ---
     const state = {
+        activeCategory: null,
+        activeCollege: null,
+        filteredData: [],
+        displayLimit: 20,
+        searchQuery: "",
+        
+        // 废土逻辑
         mode: 'library',
         startTime: Date.now(),
         lastScrollY: 0,
         totalScroll: 0,
         renderedCount: 0,
         totalEnergy: 0,
-        generatedTrashThresholds: new Set(),
-        dataIndex: 0
+        generatedTrashThresholds: new Set()
     };
 
+    // --- DOM ---
     const els = {
         body: document.body,
-        container: document.getElementById('archive-list'),
+        sidebar: document.getElementById('sidebar'),
+        navList: document.getElementById('navList'),
+        emptyState: document.getElementById('emptyState'),
+        contentArea: document.getElementById('contentArea'),
+        headerTitle: document.getElementById('headerTitle'),
+        listBody: document.getElementById('listBody'),
+        searchInput: document.getElementById('searchInput'),
+        pathDisplay: document.getElementById('pathDisplay'),
+        dataContainer: document.getElementById('data-container'),
+        loading: document.getElementById('loading'),
         btnToggle: document.getElementById('btnToggle'),
-        appContainer: document.getElementById('app-container'),
+        
+        // Stats
+        statCount: document.getElementById('statCount'),
+        statSum: document.getElementById('statSum'),
+        statAvg: document.getElementById('statAvg'),
+        statMax: document.getElementById('statMax'),
+        
+        // Energy Panel
         dTime: document.getElementById('dispTime'),
         dScroll: document.getElementById('dispScroll'),
-        dData: document.getElementById('dispData'),
         dEnergy: document.getElementById('dispEnergy'),
         dMapping: document.getElementById('dispMapping')
     };
 
     // --- 初始化 ---
     function init() {
-        loadMoreData(20);
-        requestAnimationFrame(energyLoop);
-        els.btnToggle.addEventListener('click', toggleMode);
-        els.appContainer.addEventListener('scroll', handleScroll);
+        renderNav();
+        setupListeners();
+        requestAnimationFrame(energyLoop); // 启动能耗计算
     }
 
+    // --- 逻辑: 导航与数据 ---
+    function getCategories() { return [...new Set(RAW_DATA.map(d => d.category))].sort(); }
+    function getColleges(cat) { return [...new Set(RAW_DATA.filter(d => d.category === cat).map(d => d.college))].sort(); }
+
+    function renderNav() {
+        const cats = getCategories();
+        els.navList.innerHTML = '';
+        cats.forEach(cat => {
+            const li = document.createElement('li');
+            li.className = 'nav-category';
+            const header = document.createElement('div');
+            header.className = 'category-header';
+            const count = RAW_DATA.filter(d => d.category === cat).length;
+            header.innerHTML = `<span>${cat}</span> <span class="meta">${count} items</span>`;
+            
+            const subList = document.createElement('ul');
+            subList.className = 'college-list';
+            getColleges(cat).forEach(col => {
+                const subLi = document.createElement('li');
+                subLi.className = 'college-item';
+                const colCount = RAW_DATA.filter(d => d.category === cat && d.college === col).length;
+                subLi.innerHTML = `<span>${col}</span> <span class="count">${colCount}</span>`;
+                subLi.onclick = (e) => {
+                    e.stopPropagation();
+                    document.querySelectorAll('.college-item').forEach(el => el.classList.remove('active'));
+                    subLi.classList.add('active');
+                    selectPath(cat, col);
+                };
+                subList.appendChild(subLi);
+            });
+
+            header.onclick = () => {
+                const isOpen = subList.style.display === 'block';
+                document.querySelectorAll('.college-list').forEach(el => el.style.display = 'none');
+                subList.style.display = isOpen ? 'none' : 'block';
+            };
+            li.appendChild(header);
+            li.appendChild(subList);
+            els.navList.appendChild(li);
+        });
+    }
+
+    function selectPath(cat, col) {
+        state.activeCategory = cat;
+        state.activeCollege = col;
+        state.searchQuery = "";
+        els.searchInput.value = "";
+        els.searchInput.disabled = false;
+        els.pathDisplay.innerText = `${cat} / ${col}`;
+        els.emptyState.style.display = 'none';
+        els.contentArea.style.display = 'flex';
+        filterAndRender(true);
+    }
+
+    function filterAndRender(resetScroll = false) {
+        let data = RAW_DATA.filter(d => d.category === state.activeCategory && d.college === state.activeCollege);
+        if (state.searchQuery) {
+            const q = state.searchQuery;
+            data = data.filter(d => d.name.toLowerCase().includes(q) || d.notes.toLowerCase().includes(q));
+        }
+        state.filteredData = data;
+        updateStats(data);
+
+        if (resetScroll) {
+            state.displayLimit = 20;
+            els.dataContainer.scrollTop = 0;
+            els.listBody.innerHTML = '';
+        }
+        renderChunk();
+    }
+
+    function renderChunk() {
+        const currentLen = els.listBody.children.length;
+        const targetLen = Math.min(state.displayLimit, state.filteredData.length);
+        if (currentLen >= targetLen) return;
+
+        const fragment = document.createDocumentFragment();
+        const itemsToRender = state.filteredData.slice(currentLen, targetLen);
+
+        itemsToRender.forEach((d, idx) => {
+            const div = document.createElement('div');
+            div.className = 'data-row';
+            
+            // 初始化下落变量 (避免未定义，值为默认)
+            div.style.setProperty('--fall-x', '0px');
+            div.style.setProperty('--fall-y', '100px'); // 默认往下掉一点
+            div.style.setProperty('--fall-r', '0deg');
+            div.style.setProperty('--crumple-s', '1');
+
+            div.innerHTML = `
+                <div class="col-name">${d.name}</div>
+                <div class="col-emission">${d.emission.toLocaleString()} <span style="font-size:10px; color:#888;">${d.unit}</span></div>
+                <div class="col-date">${d.date}</div>
+                <div class="col-notes" title="${d.notes}">${d.notes}</div>
+            `;
+            fragment.appendChild(div);
+        });
+
+        els.listBody.appendChild(fragment);
+        state.renderedCount = els.listBody.children.length;
+
+        if (targetLen < state.filteredData.length) els.loading.style.display = 'block';
+        else els.loading.style.display = 'none';
+
+        // 如果在垃圾模式下加载新数据，立即计算下落
+        if (state.mode === 'waste') {
+            requestAnimationFrame(recalcFallPositions);
+        }
+    }
+
+    function updateStats(data) {
+        els.headerTitle.innerText = state.activeCollege;
+        const count = data.length;
+        const sum = data.reduce((acc, c) => acc + c.emission, 0);
+        const avg = count ? sum / count : 0;
+        const max = count ? Math.max(...data.map(d => d.emission)) : 0;
+        const fmt = n => n > 1000 ? (n/1000).toFixed(1) + 'k' : n.toFixed(1);
+
+        els.statCount.innerText = count;
+        els.statSum.innerText = fmt(sum);
+        els.statAvg.innerText = fmt(avg);
+        els.statMax.innerText = fmt(max);
+    }
+
+    // --- 核心：切换逻辑 (Bin Effect) ---
     function toggleMode() {
         state.mode = state.mode === 'library' ? 'waste' : 'library';
         
         if (state.mode === 'waste') {
             els.body.classList.add('mode-waste');
             els.btnToggle.innerText = "RESTORE ORDER";
-            els.dMapping.innerText = ">> CRITICAL: VISUALIZING ENTROPY...";
+            els.dMapping.innerText = "COLLAPSING STRUCTURE...";
             els.dMapping.style.color = "#FF3333";
-            checkTrashSpawn(true); // 立即生成一些
+            recalcFallPositions();
+            checkTrashSpawn(true);
         } else {
             els.body.classList.remove('mode-waste');
             els.btnToggle.innerText = "SWITCH TO WASTE";
-            els.dMapping.innerText = "System Stabilized.";
-            els.dMapping.style.color = "inherit";
+            els.dMapping.innerText = "System Stable";
+            els.dMapping.style.color = "#999";
         }
     }
 
-    function loadMoreData(count) {
-        const fragment = document.createDocumentFragment();
-        for (let i = 0; i < count; i++) {
-            const data = ARCHIVE_DATA[state.dataIndex % ARCHIVE_DATA.length];
-            state.dataIndex++;
-            const div = document.createElement('div');
-            div.className = 'data-row';
+    // 计算所有条目的下落堆叠位置
+    function recalcFallPositions() {
+        const rows = document.querySelectorAll('.data-row');
+        const containerHeight = els.dataContainer.clientHeight;
+        const scrollTop = els.dataContainer.scrollTop;
+        
+        rows.forEach(row => {
+            const currentTop = row.offsetTop;
+            // 目标：屏幕底部 + 随机堆叠
+            // 加上 scrollTop 是因为 row 是 absolute/relative 混合，我们要模拟它们掉到当前视口的底部
+            const targetY = scrollTop + containerHeight - 50 - (Math.random() * 300);
             
-            // 预设随机崩塌参数
-            div.style.setProperty('--rand-x', (Math.random() - 0.5) * 150 + 'px');
-            div.style.setProperty('--rand-y', (Math.random() - 0.5) * 80 + 'px');
-            div.style.setProperty('--rand-r', (Math.random() - 0.5) * 20 + 'deg');
+            const fallY = targetY - currentTop; // 位移量
+            const fallX = (Math.random() - 0.5) * (window.innerWidth * 0.5); // 横向散开
+            const fallR = (Math.random() - 0.5) * 120 + 'deg'; // 旋转
+            const crumpleS = 0.4 + Math.random() * 0.5; // 变窄
 
-            div.innerHTML = `
-                <div class="col-name">${data.name}</div>
-                <div class="col-emission">${data.emission.toLocaleString()} ${data.unit}</div>
-                <div class="col-meta">${data.notes}</div>
-                <div class="col-meta">REF-${state.dataIndex}</div>
-            `;
-            fragment.appendChild(div);
-        }
-        els.container.appendChild(fragment);
-        state.renderedCount += count;
+            row.style.setProperty('--fall-x', `${fallX}px`);
+            row.style.setProperty('--fall-y', `${Math.max(50, fallY)}px`); // 至少往下掉
+            row.style.setProperty('--fall-r', fallR);
+            row.style.setProperty('--crumple-s', crumpleS);
+        });
     }
 
-    function handleScroll() {
-        const scrollTop = els.appContainer.scrollTop;
-        const delta = Math.abs(scrollTop - state.lastScrollY);
-        state.totalScroll += delta;
-        state.lastScrollY = scrollTop;
-        if (scrollTop + els.appContainer.clientHeight >= els.appContainer.scrollHeight - 100) {
-            loadMoreData(10);
+    // --- 垃圾生成 (AI Images) ---
+    function spawnWasteItem(scale = 1, label = "WASTE") {
+        const div = document.createElement('div');
+        div.className = 'waste-item';
+        
+        const viewH = els.dataContainer.clientHeight;
+        const scrollT = els.dataContainer.scrollTop;
+        
+        // 随机从天而降，落在当前视口底部区域
+        const targetTop = scrollT + viewH - 100 - Math.random() * 150;
+        const rLeft = 20 + Math.random() * 60; // 居中一些
+        const rRot = (Math.random() - 0.5) * 90;
+        const size = 150 * scale;
+
+        div.style.top = targetTop + 'px';
+        div.style.left = rLeft + '%';
+        div.style.width = size + 'px';
+        div.style.height = size + 'px';
+        div.style.setProperty('--rot', rRot + 'deg');
+
+        // 本地图片
+        const randomImg = LOCAL_AI_IMAGES[Math.floor(Math.random() * LOCAL_AI_IMAGES.length)];
+        div.innerHTML = `<img src="./${randomImg}" alt="waste"><div class="waste-label">${label}</div>`;
+
+        els.listBody.appendChild(div);
+
+        // 限制数量
+        const items = document.querySelectorAll('.waste-item');
+        if (items.length > 20) items[0].remove();
+    }
+
+    function checkTrashSpawn(force = false) {
+        CONFIG.mapping.forEach(item => {
+            if (state.totalEnergy >= item.threshold && !state.generatedTrashThresholds.has(item.name)) {
+                state.generatedTrashThresholds.add(item.name);
+                spawnWasteItem(1.5, item.name);
+                els.dMapping.innerText = `>> GENERATED: ${item.name}`;
+            }
+        });
+        
+        // 随机小垃圾
+        if (Math.random() < 0.005 + (state.totalEnergy * 0.001)) {
+            spawnWasteItem(0.6, "DATA WASTE");
         }
     }
 
+    // --- 能耗循环 ---
     function energyLoop() {
         const now = Date.now();
         const durationSec = (now - state.startTime) / 1000;
-        const eTime = durationSec * CONFIG.baseCostPerSec;
-        const eScroll = state.totalScroll * CONFIG.scrollCostPerPx;
-        const eRender = state.renderedCount * CONFIG.dataRenderCost;
-        state.totalEnergy = eTime + eScroll + eRender;
+        state.totalEnergy = (durationSec * CONFIG.baseCostPerSec) + 
+                            (state.totalScroll * CONFIG.scrollCostPerPx) + 
+                            (state.renderedCount * CONFIG.dataRenderCost);
 
-        // UI 更新
+        // 更新 UI
         const mins = Math.floor(durationSec / 60).toString().padStart(2, '0');
         const secs = Math.floor(durationSec % 60).toString().padStart(2, '0');
         els.dTime.innerText = `${mins}:${secs}`;
         els.dScroll.innerText = `${Math.floor(state.totalScroll)} px`;
-        els.dData.innerText = `${state.renderedCount} items`;
         els.dEnergy.innerText = `${state.totalEnergy.toFixed(4)} Wh`;
 
         if (state.mode === 'waste') checkTrashSpawn();
         requestAnimationFrame(energyLoop);
     }
 
-    function checkTrashSpawn(force = false) {
-        // 逻辑：每增加约 1Wh，生成一个垃圾，或者随机生成
-        // 这里使用阈值检测法 + 随机背景垃圾
-        
-        // 1. 阈值生成 (Milestones)
-        CONFIG.mapping.forEach((item) => {
-            const uniqueKey = item.name;
-            if (state.totalEnergy >= item.threshold && !state.generatedTrashThresholds.has(uniqueKey)) {
-                state.generatedTrashThresholds.add(uniqueKey);
-                spawnWasteItem(1.5, item.name); // 大图
-                els.dMapping.innerText = `>> GENERATED: ${item.name}`;
+    // --- 监听 ---
+    function setupListeners() {
+        els.searchInput.addEventListener('input', (e) => {
+            state.searchQuery = e.target.value.toLowerCase();
+            filterAndRender(true);
+        });
+
+        els.dataContainer.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = els.dataContainer;
+            
+            // 记录滚动距离
+            const delta = Math.abs(scrollTop - state.lastScrollY);
+            state.totalScroll += delta;
+            state.lastScrollY = scrollTop;
+
+            if (scrollTop + clientHeight >= scrollHeight - 50) {
+                if (state.displayLimit < state.filteredData.length) {
+                    state.displayLimit += 20;
+                    renderChunk();
+                }
             }
         });
 
-        // 2. 随机背景生成 (根据当前能耗等级提高频率)
-        const chance = 0.01 + (state.totalEnergy * 0.005); // 能耗越高，生成越快
-        if (Math.random() < chance) {
-            spawnWasteItem(0.5 + Math.random(), "DATA WASTE");
-        }
+        els.btnToggle.addEventListener('click', toggleMode);
     }
 
-    // --- 核心：生成 Unsplash 图片 ---
-    function spawnWasteItem(scale = 1, label = "WASTE") {
-        const div = document.createElement('div');
-        div.className = 'waste-item';
-        
-        // 随机位置与尺寸
-        const viewH = els.appContainer.clientHeight;
-        const scrollT = els.appContainer.scrollTop;
-        const rTop = scrollT + 50 + Math.random() * (viewH - 150);
-        const rLeft = Math.random() * 80;
-        const rRot = (Math.random() - 0.5) * 90;
-        const size = 120 * scale;
-        
-        div.style.top = rTop + 'px';
-        div.style.left = rLeft + '%';
-        div.style.width = size + 'px';
-        div.style.height = size + 'px';
-        div.style.transform = `rotate(${rRot}deg)`;
-
-        // 从精选库中随机取一个 ID
-        const randomId = UNSPLASH_GALLERY[Math.floor(Math.random() * UNSPLASH_GALLERY.length)];
-        // 构造 CDN 链接 (指定宽度以节省流量，q=80 压缩)
-        const imgUrl = `https://images.unsplash.com/photo-${randomId}?auto=format&fit=crop&w=400&q=80`;
-
-        div.innerHTML = `
-            <img src="${imgUrl}" alt="waste">
-            <div class="waste-label">${label}</div>
-        `;
-
-        els.container.appendChild(div);
-        
-        // 限制数量，防止卡顿
-        const allItems = document.querySelectorAll('.waste-item');
-        if (allItems.length > 30) allItems[0].remove();
-    }
-
-    init();
 </script>
 </body>
 </html>
