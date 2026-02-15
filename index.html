@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbon Emission Archive</title>
+    <title>Carbon Archive / Digital Landfill</title>
     <style>
         /* --- RESET & BASE --- */
         :root {
@@ -12,8 +12,9 @@
             --color-text: #000000;
             --color-line: #e0e0e0;
             --color-highlight: #f0f0f0;
-            --space-unit: 16px;
             --sidebar-width: 320px;
+            --trans-speed: 0.8s;
+            --cubic-bezier: cubic-bezier(0.19, 1, 0.22, 1);
         }
         
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,9 +26,20 @@
             font-size: 13px;
             line-height: 1.4;
             height: 100vh;
-            overflow: hidden;
+            overflow: hidden; /* Main scroll handled inside containers */
             -webkit-font-smoothing: antialiased;
             display: flex;
+            transition: background-color var(--trans-speed);
+        }
+
+        /* --- MODE: CHAOS (Global Overrides) --- */
+        body.mode-chaos {
+            background-color: #f4f4f4; /* Slightly dirty bg */
+        }
+        
+        /* In Chaos mode, everything tilts slightly */
+        body.mode-chaos #app {
+            /* optional global distortion */
         }
 
         /* --- NOISE TEXTURE --- */
@@ -37,6 +49,7 @@
             pointer-events: none;
             opacity: 0.04;
             z-index: 9999;
+            mix-blend-mode: multiply;
         }
 
         /* --- LAYOUT --- */
@@ -44,6 +57,8 @@
             display: flex;
             width: 100%;
             height: 100%;
+            position: relative;
+            z-index: 10;
         }
 
         /* --- SIDEBAR --- */
@@ -54,11 +69,18 @@
             flex-direction: column;
             background: #fff;
             flex-shrink: 0;
-            z-index: 10;
+            z-index: 20;
+            transition: transform var(--trans-speed) var(--cubic-bezier);
+        }
+
+        /* Sidebar collapses in Chaos mode to give space for garbage */
+        body.mode-chaos aside {
+            transform: translateX(-260px); /* Hide most of it, leave toggle visible */
+            opacity: 0.8;
         }
 
         .search-container {
-            padding: var(--space-unit);
+            padding: 16px;
             border-bottom: 1px solid var(--color-text);
         }
 
@@ -69,65 +91,86 @@
             font-family: inherit;
             font-size: 13px;
             outline: none;
-            border-radius: 0;
             background: transparent;
         }
-        input#search-input::placeholder { color: #999; font-style: italic; }
 
-        .nav-tree {
-            flex: 1;
-            overflow-y: auto;
+        .nav-tree { flex: 1; overflow-y: auto; }
+
+        /* Accordion */
+        .acc-item { border-bottom: 1px solid var(--color-line); }
+        .acc-header {
+            padding: 16px; cursor: pointer; display: flex; justify-content: space-between;
+            font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px;
+            transition: background 0.2s;
+        }
+        .acc-header:hover { background-color: var(--color-highlight); }
+        .acc-body { display: none; background-color: #fff; }
+        .acc-item.open .acc-body { display: block; }
+        .acc-item.open .acc-header { border-bottom: 1px solid var(--color-line); }
+
+        .college-item {
+            padding: 12px 16px 12px 32px; cursor: pointer; border-bottom: 1px solid var(--color-line);
+            display: flex; justify-content: space-between; color: #555;
+        }
+        .college-item:hover { color: #000; text-decoration: underline; }
+        .college-item.active { background-color: #000; color: #fff; text-decoration: none; }
+
+        /* --- BOTTOM LEFT: ENERGY TOGGLE --- */
+        .energy-control {
+            margin-top: auto;
+            border-top: 1px solid var(--color-text);
+            padding: 20px;
+            background: #fff;
+            /* Make sure it stays visible even when sidebar shifts */
+            position: relative; 
+            width: var(--sidebar-width); /* Fix width to match sidebar */
+            right: 0; /* Align to right of sidebar container */
+        }
+        
+        body.mode-chaos .energy-control {
+            /* In chaos mode, sidebar shifts left, we want this part to stick out or move with it? 
+               Let's let it move with sidebar, but maybe visually highlight it */
+             background: #000;
+             color: #fff;
+             border-color: #fff;
         }
 
-        /* Accordion Items */
-        .acc-item { border-bottom: 1px solid var(--color-line); }
-        
-        .acc-header {
-            padding: var(--space-unit);
+        .energy-display {
+            font-family: "Courier New", monospace;
+            font-size: 11px;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .energy-val { font-weight: bold; font-size: 14px; }
+        .energy-label { opacity: 0.6; display: block; margin-top: 4px; font-size: 10px;}
+
+        .switch-btn {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid currentColor;
+            background: transparent;
+            color: inherit;
+            font-family: inherit;
+            font-weight: bold;
+            text-transform: uppercase;
             cursor: pointer;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            transition: background 0.2s;
+            transition: all 0.3s;
         }
-        .acc-header:hover { background-color: var(--color-highlight); }
-        
-        .acc-icon { font-weight: normal; font-size: 16px; }
-
-        .acc-count { 
-            font-weight: normal; 
-            font-size: 11px; 
-            color: #666; 
-            margin-right: 8px; 
+        .switch-btn:hover { background: rgba(128,128,128,0.1); }
+        .switch-indicator {
+            width: 10px; height: 10px; border-radius: 50%;
+            border: 1px solid currentColor;
+            position: relative;
         }
-
-        .acc-body {
-            display: none;
-            background-color: #fff;
+        .switch-indicator::after {
+            content: ''; position: absolute; top:2px; left:2px; right:2px; bottom:2px;
+            background: currentColor; border-radius: 50%;
+            opacity: 0; transition: opacity 0.3s;
         }
-        .acc-item.open .acc-body { display: block; }
-        .acc-item.open .acc-header { border-bottom: 1px solid var(--color-line); }
-
-        /* College List */
-        .college-item {
-            padding: 12px var(--space-unit);
-            padding-left: 32px;
-            cursor: pointer;
-            border-bottom: 1px solid var(--color-line);
-            display: flex;
-            justify-content: space-between;
-            color: #555;
-        }
-        .college-item:hover { color: #000; text-decoration: underline; }
-        .college-item.active {
-            background-color: #000;
-            color: #fff;
-            text-decoration: none;
-        }
-        .college-count { font-size: 10px; opacity: 0.6; }
+        body.mode-chaos .switch-indicator::after { opacity: 1; }
 
         /* --- MAIN CONTENT --- */
         main {
@@ -135,77 +178,121 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            overflow: hidden; /* Hide overflow, scroll handled by internal containers */
         }
 
-        /* Header Stats */
+        /* Header */
         .content-header {
-            padding: var(--space-unit);
-            border-bottom: 1px solid var(--color-text);
-            height: 120px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            background: #fff;
+            padding: 16px; border-bottom: 1px solid var(--color-text);
+            height: 120px; display: flex; flex-direction: column; justify-content: space-between;
+            background: #fff; transition: all var(--trans-speed) var(--cubic-bezier);
+            z-index: 5;
+        }
+        body.mode-chaos .content-header {
+            transform: translateY(-120px); /* Hide header in chaos mode */
+            opacity: 0;
         }
 
         .breadcrumb { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 1px;}
         .main-title { font-size: 24px; font-weight: normal; margin-top: 4px; }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            font-size: 11px;
-            margin-top: auto;
-        }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; font-size: 11px; margin-top: auto; }
         .stat-box strong { display: block; font-size: 16px; font-weight: normal; margin-top: 4px; }
         .stat-label { color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
 
-        /* Data List */
+        /* --- DATA LIST / TRASH PILE --- */
         .data-container {
             flex: 1;
             overflow-y: auto;
             position: relative;
+            perspective: 1000px; /* For 3D transforms */
         }
 
+        /* The Grid Header */
         .data-table-header {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            padding: 12px var(--space-unit);
-            border-bottom: 1px solid var(--color-text);
-            font-weight: bold;
-            font-size: 11px;
-            text-transform: uppercase;
-            position: sticky;
-            top: 0;
-            background: #fff;
-            z-index: 5;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 12px 16px; border-bottom: 1px solid var(--color-text);
+            font-weight: bold; font-size: 11px; text-transform: uppercase;
+            position: sticky; top: 0; background: #fff; z-index: 5;
+            transition: all var(--trans-speed);
+        }
+        body.mode-chaos .data-table-header {
+            opacity: 0; pointer-events: none;
         }
 
+        /* The Data List Wrapper */
+        #data-list {
+            position: relative;
+            transition: all var(--trans-speed);
+        }
+
+        /* The Rows */
         .data-row {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr;
-            padding: 16px var(--space-unit);
-            border-bottom: 1px solid var(--color-line);
-            transition: background 0.1s;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+            padding: 16px; border-bottom: 1px solid var(--color-line);
+            background: #fff;
+            transition: 
+                transform var(--trans-speed) var(--cubic-bezier), 
+                opacity var(--trans-speed),
+                margin var(--trans-speed);
+            transform-origin: center center;
         }
-        .data-row:hover { background-color: var(--color-highlight); }
-        .data-row .cell-name { font-weight: 500; }
-        .data-row .cell-emission { font-family: "Courier New", Courier, monospace; }
-        .data-row .cell-notes { font-style: italic; color: #666; font-size: 11px; }
 
+        /* CHAOS STATE for Rows: The Collapse */
+        body.mode-chaos #data-list {
+            /* Disable grid layout flow */
+            display: block;
+            padding-top: 100px; /* Push down */
+        }
+
+        body.mode-chaos .data-row {
+            /* Elements collapse into a pile */
+            border: 1px solid #000;
+            margin-bottom: -10px; /* Overlap */
+            background: #fff;
+            box-shadow: 2px 2px 0 rgba(0,0,0,0.1);
+            /* Transform is applied via JS for randomness, 
+               but here we set defaults */
+            width: 80%;
+            margin-left: 10%;
+        }
+
+        /* --- USER ENERGY TRASH (The overlay junk) --- */
+        #trash-container {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; /* Let clicks pass through unless hit trash? */
+            z-index: 50;
+            overflow: hidden;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        body.mode-chaos #trash-container {
+            opacity: 1;
+            /* In chaos mode, we allow scrolling if pile gets huge? 
+               For now, let's keep it fixed absolute waterfall */
+        }
+
+        .trash-item {
+            position: absolute;
+            will-change: transform, top;
+            transition: top 1s cubic-bezier(0.5, 0, 0.5, 1);
+            /* Artistic filter */
+            mix-blend-mode: multiply;
+        }
+        .trash-item svg {
+            fill: none;
+            stroke: #000;
+            stroke-width: 1px;
+        }
+        
         /* Empty State */
         .empty-state {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            height: 100%;
-            color: #999;
-            text-align: center;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100%; color: #999; text-align: center;
+            transition: opacity 0.5s;
         }
-        .empty-state h2 { font-weight: normal; margin-bottom: 16px; color: #000; }
-        .empty-state p { max-width: 400px; line-height: 1.6; }
+        body.mode-chaos .empty-state { opacity: 0; }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 6px; }
@@ -222,180 +309,28 @@
     <div id="app">
         <aside>
             <div class="search-container">
-                <input type="text" id="search-input" placeholder="Search index...">
+                <input type="text" id="search-input" placeholder="Search archive...">
             </div>
             <div class="nav-tree" id="nav-tree">
                 </div>
+
+            <div class="energy-control">
+                <div class="energy-display">
+                    <div>SESSION ENERGY</div>
+                    <div class="energy-val" id="energy-joules">0.00 J</div>
+                    <div class="energy-val" id="energy-carbon" style="color: #666; font-size: 12px;">0.00 gCO₂e</div>
+                    <div class="energy-label" id="trash-count-label">Accumulated Waste: 0 units</div>
+                </div>
+                <button class="switch-btn" id="mode-toggle">
+                    <span>Landfill Mode</span>
+                    <div class="switch-indicator"></div>
+                </button>
+            </div>
         </aside>
 
         <main id="main-content">
-            <div class="empty-state">
-                <h2>Carbon Emission Index</h2>
-                <p>Select a category and college from the left to view the archive.</p>
-                <br>
-                <span style="font-size: 10px; text-transform: uppercase; letter-spacing: 2px;">Data Sources: Digital Waste</span>
-            </div>
-        </main>
-    </div>
-
-<script>
-    /**
-     * DATA SECTION
-     * To update data: Replace the content of RAW_DATA with new JSON.
-     * Ensure fields: category, college, name, emission (number), unit, notes.
-     */
-    const RAW_DATA = [{"category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 49.2982, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Standard Desktop PC", "emission": 78.0727, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Standard Desktop PC", "emission": 69.4094, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Standard Desktop PC", "emission": 52.186, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Non-Standard PCs", "emission": 8.6634, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Non-Standard PCs", "emission": 79.826, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Non-Standard PCs", "emission": 37.3347, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Screens", "emission": 27.5604, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Screens", "emission": 47.8173, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Screens", "emission": 36.1867, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Screens", "emission": 28.3046, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Laptops", "emission": 12.6174, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Laptops", "emission": 17.9096, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Laptops", "emission": 12.5367, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Laptops", "emission": 10.3747, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "VOIP Desktop Phones", "emission": 0.3702, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "VOIP Desktop Phones", "emission": 0.3317, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "VOIP Desktop Phones", "emission": 0.2622, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "VOIP Desktop Phones", "emission": 0.4165, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones", "emission": 0.1669, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Smartphones", "emission": 0.1473, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Smartphones", "emission": 0.1183, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Smartphones", "emission": 0.1888, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Tablets", "emission": 0.7043, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Tablets", "emission": 0.6213, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Tablets", "emission": 0.5001, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Tablets", "emission": 0.7928, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Laserjet Printers", "emission": 4.5181, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Laserjet Printers", "emission": 4.0252, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Laserjet Printers", "emission": 2.6287, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Laserjet Printers", "emission": 5.0111, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 251.7, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 182.14, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 129.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones & Tablets", "emission": 15.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Smartphones & Tablets", "emission": 13.42, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Smartphones & Tablets", "emission": 10.79, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Smartphones & Tablets", "emission": 17.15, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Printers", "emission": 2.06, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Printers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Printers", "emission": 1.2, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Printers", "emission": 2.29, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "Routers", "emission": 0.3598, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Routers", "emission": 0.3144, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Routers", "emission": 0.3275, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Switches", "emission": 49.3679, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Switches", "emission": 116.6569, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 60.1882, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Switches", "emission": 54.9471, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Wireless Network", "emission": 7.8009, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Wireless Network", "emission": 10.0713, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Wireless Network", "emission": 5.9749, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Wireless Network", "emission": 23.194, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "LAN 10GBBASET-t Ethernet", "emission": 2.8403, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "LAN 10GBBASET-t Ethernet", "emission": 6.7118, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.4629, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.1613, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Switches", "emission": 37.8712, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 35.1661, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Hardware Firewalls", "emission": 0.1704, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Hardware Firewalls", "emission": 0.0791, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Optical Fibre", "emission": 61.6792, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Optical Fibre", "emission": 138.0162, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Optical Fibre", "emission": 13.7309, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Optical Fibre", "emission": 88.7821, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "LAN Embodied Emissions Estimate", "emission": 8.37, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "LAN Embodied Emissions Estimate", "emission": 18.28, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCC", "name": "LAN Embodied Emissions Estimate", "emission": 9.41, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "CCW", "name": "LAN Embodied Emissions Estimate", "emission": 13.9, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "WAN Embodied Emissions Estimate", "emission": 7.24, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCC", "name": "WAN Embodied Emissions Estimate", "emission": 7.22, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "CCW", "name": "WAN Embodied Emissions Estimate", "emission": 0.02, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Chassis / Cabinets", "emission": 0.1718, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Chassis / Cabinets", "emission": 0.2061, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Chassis / Cabinets", "emission": 0.2746, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 0.0344, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Tower Servers", "emission": 0.3752, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Tower Servers", "emission": 0.1876, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Tower Servers", "emission": 0.0938, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Tower Servers", "emission": 0.0938, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Servers", "emission": 0.2943, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Servers", "emission": 0.2943, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Servers", "emission": 0.5888, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.8071, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 1.6144, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 2.8251, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 1.2848, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 0.6424, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 0.2141, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "RAID Controller Cards", "emission": 0.2517, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "RAID Controller Cards", "emission": 0.1258, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "RAID Controller Cards", "emission": 0.0419, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Chassis / Cabinets", "emission": 0.6, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Chassis / Cabinets", "emission": 0.72, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Chassis / Cabinets", "emission": 0.96, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Rack Chassis / Cabinets", "emission": 0.12, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Tower Servers", "emission": 0.29, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Tower Servers", "emission": 0.14, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Tower Servers", "emission": 0.07, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CCW", "name": "Tower Servers", "emission": 0.07, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Rack Servers", "emission": 0.13, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Rack Servers", "emission": 0.13, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Rack Servers", "emission": 0.36, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 0.5, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 0.88, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 2.72, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}];
-
-    // Global State
-    let state = {
-        category: null,
-        college: null,
-        search: ""
-    };
-
-    // DOM Elements
-    const dom = {
-        navTree: document.getElementById('nav-tree'),
-        mainContent: document.getElementById('main-content'),
-        searchInput: document.getElementById('search-input'),
-        noiseCanvas: document.getElementById('noise-canvas')
-    };
-
-    /**
-     * INITIALIZATION
-     */
-    function init() {
-        renderSidebar();
-        initNoise();
-        
-        // Event Listeners
-        dom.searchInput.addEventListener('input', (e) => {
-            state.search = e.target.value.toLowerCase();
-            if (state.category && state.college) {
-                renderMainContent();
-            }
-        });
-    }
-
-    /**
-     * SIDEBAR RENDER LOGIC
-     */
-    function renderSidebar() {
-        // Group Data
-        const categories = [...new Set(RAW_DATA.map(d => d.category))];
-        const colleges = ["CSM", "LCF", "LCC", "CCW"]; // Fixed order
-
-        dom.navTree.innerHTML = '';
-
-        categories.forEach(cat => {
-            // Calculate Count
-            const catCount = RAW_DATA.filter(d => d.category === cat).length;
-
-            const accItem = document.createElement('div');
-            accItem.className = 'acc-item';
-            
-            // Header
-            const header = document.createElement('div');
-            header.className = 'acc-header';
-            header.innerHTML = `
-                <span>${cat}</span>
-                <div style="display:flex; align-items:center;">
-                    <span class="acc-count">${catCount}</span>
-                    <span class="acc-icon">+</span>
+            <div id="content-header-wrapper">
                 </div>
-            `;
-            header.onclick = () => toggleAccordion(accItem, header);
-
-            // Body
-            const body = document.createElement('div');
-            body.className = 'acc-body';
-
-            colleges.forEach(col => {
-                const colCount = RAW_DATA.filter(d => d.category === cat && d.college === col).length;
-                const colItem = document.createElement('div');
-                colItem.className = 'college-item';
-                colItem.innerHTML = `
-                    <span>${col}</span>
-                    <span class="college-count">${colCount}</span>
-                `;
-                colItem.onclick = () => selectCollege(cat, col, colItem);
-                colItem.dataset.id = `${cat}-${col}`; // For active state
-                body.appendChild(colItem);
-            });
-
-            accItem.appendChild(header);
-            accItem.appendChild(body);
-            dom.navTree.appendChild(accItem);
-        });
-    }
-
-    function toggleAccordion(item, header) {
-        const isOpen = item.classList.contains('open');
-        // Close others if needed (optional, keeping independent here)
-        // item.classList.toggle('open');
-        
-        // Toggle Icon
-        const icon = header.querySelector('.acc-icon');
-        if (isOpen) {
-            item.classList.remove('open');
-            icon.textContent = '+';
-        } else {
-            item.classList.add('open');
-            icon.textContent = '–'; // En dash
-        }
-    }
-
-    function selectCollege(cat, col, el) {
-        // Update State
-        state.category = cat;
-        state.college = col;
-
-        // Update UI Highlights
-        document.querySelectorAll('.college-item').forEach(i => i.classList.remove('active'));
-        el.classList.add('active');
-
-        // Render Main
-        renderMainContent();
-    }
-
-    /**
-     * MAIN CONTENT RENDER LOGIC
-     */
-    function renderMainContent() {
-        // Filter Data
-        let filtered = RAW_DATA.filter(d => 
-            d.category === state.category && 
-            d.college === state.college
-        );
-
-        // Search Filter
-        if (state.search) {
-            filtered = filtered.filter(d => 
-                d.name.toLowerCase().includes(state.search) || 
-                d.notes.toLowerCase().includes(state.search)
-            );
-        }
-
-        // Stats
-        const totalEmission = filtered.reduce((sum, d) => sum + d.emission, 0);
-        const avgEmission = filtered.length ? totalEmission / filtered.length : 0;
-        const maxEmission = filtered.length ? Math.max(...filtered.map(d => d.emission)) : 0;
-        const minEmission = filtered.length ? Math.min(...filtered.map(d => d.emission)) : 0;
-
-        // HTML Construction
-        let html = `
-            <div class="content-header">
-                <div>
-                    <div class="breadcrumb">${state.category} / ${state.college}</div>
-                    <div class="main-title">Emission Report</div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-box"><span class="stat-label">Total (tCO₂e)</span> <strong>${totalEmission.toFixed(2)}</strong></div>
-                    <div class="stat-box"><span class="stat-label">Average</span> <strong>${avgEmission.toFixed(3)}</strong></div>
-                    <div class="stat-box"><span class="stat-label">Max</span> <strong>${maxEmission.toFixed(3)}</strong></div>
-                    <div class="stat-box"><span class="stat-label">Items</span> <strong>${filtered.length}</strong></div>
-                </div>
-            </div>
             
             <div class="data-table-header">
                 <div>Item Name</div>
@@ -406,80 +341,354 @@
 
             <div class="data-container" id="scroll-container">
                 <div id="data-list"></div>
+                
+                <div id="trash-container"></div>
+
+                <div class="empty-state" id="empty-state">
+                    <h2>Carbon Emission Archive</h2>
+                    <p>Select a category and college.</p>
+                </div>
             </div>
-        `;
+        </main>
+    </div>
 
-        dom.mainContent.innerHTML = html;
+<script>
+    /* -------------------------------------------------------------------------
+       DATA SECTION
+       ------------------------------------------------------------------------- */
+    const RAW_DATA = [{"category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 49.2982, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Standard Desktop PC", "emission": 78.0727, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Standard Desktop PC", "emission": 69.4094, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Standard Desktop PC", "emission": 52.186, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Non-Standard PCs", "emission": 8.6634, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Non-Standard PCs", "emission": 79.826, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Non-Standard PCs", "emission": 37.3347, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Screens", "emission": 27.5604, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Screens", "emission": 47.8173, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Screens", "emission": 36.1867, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Screens", "emission": 28.3046, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Laptops", "emission": 12.6174, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Laptops", "emission": 17.9096, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Laptops", "emission": 12.5367, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Laptops", "emission": 10.3747, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "VOIP Desktop Phones", "emission": 0.3702, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "VOIP Desktop Phones", "emission": 0.3317, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "VOIP Desktop Phones", "emission": 0.2622, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "VOIP Desktop Phones", "emission": 0.4165, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones", "emission": 0.1669, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Smartphones", "emission": 0.1473, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Smartphones", "emission": 0.1183, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Smartphones", "emission": 0.1888, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Tablets", "emission": 0.7043, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Tablets", "emission": 0.6213, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Tablets", "emission": 0.5001, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Tablets", "emission": 0.7928, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Laserjet Printers", "emission": 4.5181, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Laserjet Printers", "emission": 4.0252, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Laserjet Printers", "emission": 2.6287, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Laserjet Printers", "emission": 5.0111, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Computer, print and audio", "college": "CSM", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCF", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 251.7, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "LCC", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 182.14, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Computer, print and audio", "college": "CCW", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 129.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Network and telephony", "college": "LCF", "name": "Routers", "emission": 0.3598, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Switches", "emission": 49.3679, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Switches", "emission": 116.6569, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Switches", "emission": 60.1882, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Switches", "emission": 54.9471, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Wireless Network", "emission": 7.8009, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Wireless Network", "emission": 10.0713, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "Wireless Network", "emission": 5.9749, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "Wireless Network", "emission": 23.194, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "LAN 10GBBASET-t Ethernet", "emission": 2.8403, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "LAN 10GBBASET-t Ethernet", "emission": 6.7118, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCC", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.4629, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CCW", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.1613, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "CSM", "name": "Optical Fibre", "emission": 61.6792, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Network and telephony", "college": "LCF", "name": "Optical Fibre", "emission": 138.0162, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.8071, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 1.6144, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 2.8251, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 1.2848, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"}, {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 2.72, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}, {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"}];
 
-        // Infinite Scroll Logic (Simple Chunking)
-        const listEl = document.getElementById('data-list');
-        const scrollContainer = document.getElementById('scroll-container');
-        
-        let renderedCount = 0;
-        const CHUNK_SIZE = 20;
+    /* -------------------------------------------------------------------------
+       APP STATE
+       ------------------------------------------------------------------------- */
+    const state = {
+        category: null,
+        college: null,
+        search: "",
+        mode: 'order', // 'order' or 'chaos'
+        filteredData: []
+    };
 
-        function renderChunk() {
-            const chunk = filtered.slice(renderedCount, renderedCount + CHUNK_SIZE);
-            chunk.forEach(d => {
-                const row = document.createElement('div');
-                row.className = 'data-row';
-                row.innerHTML = `
-                    <div class="cell-name">${d.name}</div>
-                    <div class="cell-emission">${d.emission.toFixed(4)}</div>
-                    <div class="cell-date">${d.date}</div>
-                    <div class="cell-notes">${d.notes}</div>
-                `;
-                listEl.appendChild(row);
-            });
-            renderedCount += chunk.length;
+    const dom = {
+        navTree: document.getElementById('nav-tree'),
+        mainContent: document.getElementById('main-content'),
+        searchInput: document.getElementById('search-input'),
+        noiseCanvas: document.getElementById('noise-canvas'),
+        contentHeader: document.getElementById('content-header-wrapper'),
+        dataList: document.getElementById('data-list'),
+        scrollContainer: document.getElementById('scroll-container'),
+        emptyState: document.getElementById('empty-state'),
+        modeToggle: document.getElementById('mode-toggle'),
+        trashContainer: document.getElementById('trash-container'),
+        // Energy DOM
+        eJoules: document.getElementById('energy-joules'),
+        eCarbon: document.getElementById('energy-carbon'),
+        trashLabel: document.getElementById('trash-count-label')
+    };
+
+    /* -------------------------------------------------------------------------
+       ENERGY MODEL CLASS
+       ------------------------------------------------------------------------- */
+    class EnergyTracker {
+        constructor() {
+            this.totalJoules = 0;
+            this.lastUpdate = Date.now();
+            
+            // Constants (Estimates)
+            this.BASE_POWER_W = 1.5; // Base tab power
+            this.SCROLL_COST_J = 0.5; // Cost per scroll event
+            this.INTERACT_COST_J = 0.2; // Mousemove/Click
+            
+            // Carbon Intensity (Global avg ~ 442g/kWh -> 0.442g/Wh -> 0.00012g/J)
+            // We exaggerate slightly for the art piece visualization
+            this.CARBON_INTENSITY = 0.00015; // gCO2e per Joule
+            
+            // Trash Threshold: 1 unit of trash per X grams of CO2
+            this.TRASH_THRESHOLD_G = 0.05; 
+            this.spawnedTrashCount = 0;
+
+            this.initListeners();
+            this.startLoop();
         }
 
-        // Initial Chunk
-        renderChunk();
+        initListeners() {
+            // Scroll Interaction
+            dom.scrollContainer.addEventListener('scroll', () => {
+                this.addEnergy(this.SCROLL_COST_J);
+            }, { passive: true });
 
-        // Scroll Listener
-        scrollContainer.addEventListener('scroll', () => {
-            if (scrollContainer.scrollTop + scrollContainer.clientHeight >= scrollContainer.scrollHeight - 50) {
-                if (renderedCount < filtered.length) {
-                    renderChunk();
+            // Mouse Interaction
+            window.addEventListener('mousemove', () => {
+                // Throttle slightly
+                if (Math.random() > 0.8) this.addEnergy(this.INTERACT_COST_J * 0.1);
+            });
+            
+            window.addEventListener('click', () => {
+                this.addEnergy(this.INTERACT_COST_J);
+            });
+        }
+
+        addEnergy(joules) {
+            this.totalJoules += joules;
+            this.updateUI();
+        }
+
+        startLoop() {
+            setInterval(() => {
+                const now = Date.now();
+                const dt = (now - this.lastUpdate) / 1000; // seconds
+                this.lastUpdate = now;
+                
+                // Add Base Power
+                this.addEnergy(this.BASE_POWER_W * dt);
+                
+                // Check Trash Spawn
+                this.checkTrashSpawn();
+                
+            }, 100); // 10Hz update
+        }
+
+        getCarbon() {
+            return this.totalJoules * this.CARBON_INTENSITY;
+        }
+
+        checkTrashSpawn() {
+            const carbon = this.getCarbon();
+            const expectedTrash = Math.floor(carbon / this.TRASH_THRESHOLD_G);
+            
+            if (expectedTrash > this.spawnedTrashCount) {
+                const diff = expectedTrash - this.spawnedTrashCount;
+                for(let i=0; i<diff; i++) {
+                    spawnTrashItem();
                 }
+                this.spawnedTrashCount = expectedTrash;
             }
+        }
+
+        updateUI() {
+            dom.eJoules.textContent = this.totalJoules.toFixed(2) + " J";
+            dom.eCarbon.textContent = this.getCarbon().toFixed(4) + " gCO₂e";
+            dom.trashLabel.textContent = `Accumulated Waste: ${this.spawnedTrashCount} units`;
+        }
+    }
+
+    const energyTracker = new EnergyTracker();
+
+    /* -------------------------------------------------------------------------
+       TRASH / CHAOS RENDERER
+       ------------------------------------------------------------------------- */
+    // SVG Templates for Trash
+    const TRASH_SVGS = [
+        // 1. Glitch Box
+        `<svg viewBox="0 0 50 50"><rect x="5" y="5" width="40" height="40" stroke="black" fill="none" transform="rotate(5 25 25)"/><rect x="8" y="8" width="30" height="30" stroke="black" fill="none" stroke-dasharray="2,2"/></svg>`,
+        // 2. Crumbled Circle
+        `<svg viewBox="0 0 50 50"><path d="M25,5 Q45,5 45,25 Q45,45 25,40 Q5,45 5,25 Q5,5 25,5 M20,20 L30,30" stroke="black" fill="none"/></svg>`,
+        // 3. Line Fragment
+        `<svg viewBox="0 0 50 50"><polyline points="5,45 15,10 35,40 45,5" stroke="black" fill="none"/></svg>`,
+        // 4. Squashed Apple (Abstract)
+        `<svg viewBox="0 0 50 50"><ellipse cx="25" cy="25" rx="15" ry="12" stroke="black" fill="none"/><path d="M25,13 L25,5" stroke="black"/></svg>`
+    ];
+
+    function spawnTrashItem() {
+        // Only visible if spawned, but we accumulate them in DOM even if hidden?
+        // Better: Always append, CSS hides/shows container.
+        
+        const div = document.createElement('div');
+        div.className = 'trash-item';
+        div.innerHTML = TRASH_SVGS[Math.floor(Math.random() * TRASH_SVGS.length)];
+        
+        // Random Position
+        const left = Math.random() * 90; // 0-90%
+        const rot = Math.random() * 360;
+        const scale = 0.8 + Math.random() * 1.5;
+        
+        div.style.left = left + '%';
+        div.style.width = '60px';
+        div.style.height = '60px';
+        div.style.transform = `rotate(${rot}deg) scale(${scale})`;
+        
+        // Start from top (offscreen)
+        div.style.top = '-100px';
+
+        dom.trashContainer.appendChild(div);
+
+        // Animate Drop (Simple CSS based logic via timeout)
+        requestAnimationFrame(() => {
+            // Target top: Accumulate at bottom roughly
+            // Simple random pile logic
+            const targetTop = 80 + Math.random() * 15; // 80-95% viewport height
+            div.style.top = targetTop + '%';
         });
     }
 
-    /**
-     * VISUAL FX: NOISE
-     */
+    function toggleMode() {
+        if (state.mode === 'order') {
+            state.mode = 'chaos';
+            document.body.classList.add('mode-chaos');
+            dom.modeToggle.querySelector('span').textContent = "Return to Order";
+            randomizeRows(); // Scatter existing data
+        } else {
+            state.mode = 'order';
+            document.body.classList.remove('mode-chaos');
+            dom.modeToggle.querySelector('span').textContent = "Landfill Mode";
+            resetRows(); // Reset data positions
+        }
+    }
+
+    function randomizeRows() {
+        // Find currently rendered rows
+        const rows = document.querySelectorAll('.data-row');
+        rows.forEach(row => {
+            // Calculate chaotic transforms
+            const rot = (Math.random() - 0.5) * 40; // +/- 20deg
+            const tx = (Math.random() - 0.5) * 100; // +/- 50px
+            const ty = Math.random() * 200; // Drop down
+            row.style.transform = `translate(${tx}px, ${ty}px) rotate(${rot}deg)`;
+            row.style.opacity = '0.4'; // Fade out real data slightly
+        });
+    }
+
+    function resetRows() {
+        const rows = document.querySelectorAll('.data-row');
+        rows.forEach(row => {
+            row.style.transform = '';
+            row.style.opacity = '1';
+        });
+    }
+
+    /* -------------------------------------------------------------------------
+       STANDARD UI LOGIC (Previous Implementation)
+       ------------------------------------------------------------------------- */
+    function init() {
+        renderSidebar();
+        initNoise();
+        
+        // Event Listeners
+        dom.searchInput.addEventListener('input', (e) => {
+            state.search = e.target.value.toLowerCase();
+            if (state.category && state.college) renderMainContent();
+        });
+
+        dom.modeToggle.addEventListener('click', toggleMode);
+    }
+
+    function renderSidebar() {
+        const categories = [...new Set(RAW_DATA.map(d => d.category))];
+        const colleges = ["CSM", "LCF", "LCC", "CCW"];
+
+        dom.navTree.innerHTML = '';
+
+        categories.forEach(cat => {
+            const catCount = RAW_DATA.filter(d => d.category === cat).length;
+            const accItem = document.createElement('div');
+            accItem.className = 'acc-item';
+            
+            const header = document.createElement('div');
+            header.className = 'acc-header';
+            header.innerHTML = `<span>${cat}</span><div style="display:flex; align-items:center;"><span class="acc-count" style="margin-right:8px;font-size:10px;color:#666;">${catCount}</span><span>+</span></div>`;
+            header.onclick = () => {
+                const isOpen = accItem.classList.contains('open');
+                accItem.classList.toggle('open');
+                header.lastElementChild.lastElementChild.textContent = isOpen ? '+' : '–';
+            };
+
+            const body = document.createElement('div');
+            body.className = 'acc-body';
+
+            colleges.forEach(col => {
+                const colCount = RAW_DATA.filter(d => d.category === cat && d.college === col).length;
+                const colItem = document.createElement('div');
+                colItem.className = 'college-item';
+                colItem.innerHTML = `<span>${col}</span><span style="font-size:10px;opacity:0.6;">${colCount}</span>`;
+                colItem.dataset.id = `${cat}-${col}`;
+                colItem.onclick = () => selectCollege(cat, col, colItem);
+                body.appendChild(colItem);
+            });
+
+            accItem.appendChild(header);
+            accItem.appendChild(body);
+            dom.navTree.appendChild(accItem);
+        });
+    }
+
+    function selectCollege(cat, col, el) {
+        state.category = cat;
+        state.college = col;
+        document.querySelectorAll('.college-item').forEach(i => i.classList.remove('active'));
+        el.classList.add('active');
+        dom.emptyState.style.display = 'none';
+        
+        // Filter Data
+        state.filteredData = RAW_DATA.filter(d => d.category === cat && d.college === col);
+        renderMainContent();
+    }
+
+    function renderMainContent() {
+        // Filter for Search
+        let displayData = state.filteredData;
+        if (state.search) {
+            displayData = displayData.filter(d => d.name.toLowerCase().includes(state.search));
+        }
+
+        // Stats
+        const total = displayData.reduce((sum, d) => sum + d.emission, 0);
+        const avg = displayData.length ? total / displayData.length : 0;
+        const max = displayData.length ? Math.max(...displayData.map(d => d.emission)) : 0;
+
+        // Render Header
+        dom.contentHeader.innerHTML = `
+            <div>
+                <div class="breadcrumb">${state.category} / ${state.college}</div>
+                <div class="main-title">Emission Report</div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-box"><span class="stat-label">Total</span> <strong>${total.toFixed(2)}</strong></div>
+                <div class="stat-box"><span class="stat-label">Avg</span> <strong>${avg.toFixed(3)}</strong></div>
+                <div class="stat-box"><span class="stat-label">Max</span> <strong>${max.toFixed(3)}</strong></div>
+                <div class="stat-box"><span class="stat-label">Count</span> <strong>${displayData.length}</strong></div>
+            </div>
+        `;
+
+        // Render List (Simple full render for simplicity in this version, or chunks if needed)
+        dom.dataList.innerHTML = '';
+        displayData.forEach(d => {
+            const row = document.createElement('div');
+            row.className = 'data-row';
+            row.innerHTML = `
+                <div style="font-weight:500;">${d.name}</div>
+                <div style="font-family:'Courier New';">${d.emission.toFixed(4)}</div>
+                <div style="font-size:11px;">${d.date}</div>
+                <div style="font-style:italic;font-size:11px;color:#666;">${d.notes}</div>
+            `;
+            dom.dataList.appendChild(row);
+        });
+
+        // If currently in chaos mode, re-apply chaos
+        if (state.mode === 'chaos') {
+            setTimeout(randomizeRows, 50);
+        }
+    }
+
     function initNoise() {
         const canvas = dom.noiseCanvas;
         const ctx = canvas.getContext('2d');
-        
-        const resize = () => {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        };
+        const resize = () => { canvas.width = window.innerWidth; canvas.height = window.innerHeight; };
         window.addEventListener('resize', resize);
         resize();
 
         function loop() {
-            const w = canvas.width;
-            const h = canvas.height;
+            const w = canvas.width, h = canvas.height;
             const idata = ctx.createImageData(w, h);
             const buffer32 = new Uint32Array(idata.data.buffer);
-            const len = buffer32.length;
-
-            for (let i = 0; i < len; i++) {
-                if (Math.random() < 0.1) { // 10% noise density
-                    buffer32[i] = 0xff000000; // Black noise
-                }
+            for (let i = 0; i < buffer32.length; i++) {
+                if (Math.random() < 0.1) buffer32[i] = 0xff000000;
             }
             ctx.putImageData(idata, 0, 0);
-            setTimeout(loop, 100); // 10fps
+            setTimeout(loop, 100);
         }
         loop();
     }
 
-    // Run
     init();
 
 </script>
