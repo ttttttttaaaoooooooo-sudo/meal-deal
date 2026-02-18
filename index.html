@@ -32,18 +32,16 @@
 
         /* --- 2. 垃圾场模式 --- */
         body.mode-chaos { 
-            background-color: #dcdcdc; /* 更深一点的灰，衬托树 */
+            background-color: #dcdcdc; 
             overflow: hidden; 
         }
         
-        /* 噪点层 */
         #noise-canvas {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; opacity: 0.08; z-index: 9000;
             mix-blend-mode: multiply;
         }
 
-        /* --- 生物层 --- */
         #bio-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; 
@@ -54,7 +52,6 @@
         }
         body.mode-chaos #bio-layer { opacity: 1; }
 
-        /* SVG 树：全屏覆盖 */
         #tree-svg {
             position: fixed; 
             top: 0; left: 0; width: 100%; height: 100%;
@@ -62,7 +59,6 @@
             z-index: 5;
         }
 
-        /* 堆叠层 & 动画层 */
         #pile-canvas, #leaf-canvas {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
         }
@@ -97,6 +93,51 @@
         }
         .college-item:hover { color: #000; text-decoration: underline; }
         .college-item.active { background-color: #000; color: #fff; text-decoration: none; }
+
+        /* --- [NEW] Waste Data 专属样式 --- */
+        .waste-nav-item {
+            background: #000; color: #fff; 
+            border-bottom: 4px solid #000;
+        }
+        .waste-nav-item:hover { background: #333; }
+        
+        .waste-container {
+            padding: 40px;
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .waste-row {
+            display: grid; 
+            grid-template-columns: 200px 1fr 80px; 
+            align-items: center; 
+            margin-bottom: 20px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        .waste-label { font-weight: bold; text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px; }
+        .waste-bar-bg { height: 30px; border-left: 2px solid #000; position: relative; margin: 0 15px; }
+        .waste-bar { height: 100%; background: #000; width: 0; transition: width 1s cubic-bezier(0.19, 1, 0.22, 1); }
+        .waste-val { font-family: var(--font-mono); text-align: right; font-weight: bold; }
+        
+        /* 故障特效 */
+        .waste-row.anomaly:hover .waste-bar { 
+            background: red; 
+            width: 100% !important; 
+            transition: width 0.05s;
+        }
+        .waste-row.anomaly:hover .waste-val { color: red; text-decoration: line-through; }
+        .waste-row.anomaly:hover .waste-label { color: red; }
+        .waste-row.anomaly:hover::after {
+            content: "ERROR: 0.05_INVALID_DATA_TYPE_NULL";
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            font-size: 5rem; color: red; opacity: 0.2; pointer-events: none;
+            font-family: var(--font-mono); font-weight: bold; z-index: 0;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- 4. 能量控制台 --- */
         .energy-control {
@@ -184,7 +225,6 @@
             border: 1px solid #eee; display: flex; justify-content: center; align-items: center;
             overflow: hidden;
         }
-        /* SVG 图片样式优化 */
         .card-image-box img { width: 100%; height: 100%; object-fit: contain; padding: 20px; }
         .card-text { font-family: var(--font-mono); font-size: 11px; text-align: center; line-height: 1.4; color: #000; }
         .card-highlight { font-weight: bold; font-size: 14px; display: block; margin-bottom: 4px;}
@@ -203,7 +243,8 @@
     <canvas id="noise-canvas"></canvas>
 
     <div id="bio-layer">
-        <canvas id="pile-canvas"></canvas> <canvas id="leaf-canvas"></canvas> <svg id="tree-svg"></svg>          </div>
+        <canvas id="pile-canvas"></canvas> <canvas id="leaf-canvas"></canvas> <svg id="tree-svg"></svg>
+    </div>
 
     <div id="hover-card">
         <div class="card-image-box"><img id="card-img" src="" alt="Equivalent"></div>
@@ -215,6 +256,14 @@
             <div style="padding:16px; border-bottom:1px solid #000;">
                 <input type="text" id="search-input" placeholder="Search archive..." style="width:100%; padding:8px; border:1px solid #000;">
             </div>
+            
+            <div class="acc-item waste-nav-item" onclick="loadWasteData()">
+                <div class="acc-header" style="justify-content: flex-start; gap: 10px;">
+                    <span>⚠️</span>
+                    <span>WASTE DATA (SCOPE 3)</span>
+                </div>
+            </div>
+
             <div class="nav-tree" id="nav-tree"></div>
             <div class="energy-control">
                 <div class="energy-display">
@@ -234,9 +283,11 @@
             <div id="content-header-wrapper" class="content-header">
                 <div class="empty-state">Select a category on the left.</div>
             </div>
-            <div class="data-table-header">
+            
+            <div class="data-table-header" id="std-header">
                 <div>Item Name</div><div>Value / Emission</div><div>Date</div><div>Context</div>
             </div>
+
             <div class="data-container" id="scroll-container">
                 <div id="data-list"></div>
                 <div id="trash-container"></div>
@@ -246,9 +297,9 @@
     </div>
 
 <script>
-    // 0. 完整数据集 (已完全恢复)
+    // 0. 完整数据集 - 完全恢复所有数据，无删减
     const RAW_DATA = [
-        // --- Network ---
+        // --- Network and telephony ---
         {"category": "Network and telephony", "college": "LCF", "name": "Routers", "emission": 0.3598, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Network and telephony", "college": "CSM", "name": "Switches", "emission": 49.3679, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Network and telephony", "college": "LCF", "name": "Switches", "emission": 116.6569, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
@@ -264,7 +315,8 @@
         {"category": "Network and telephony", "college": "CCW", "name": "LAN 10GBBASET-t Ethernet", "emission": 3.1613, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Network and telephony", "college": "CSM", "name": "Optical Fibre", "emission": 61.6792, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Network and telephony", "college": "LCF", "name": "Optical Fibre", "emission": 138.0162, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
-        // --- Cloud ---
+        
+        // --- Cloud, storage and hosting ---
         {"category": "Cloud, storage and hosting", "college": "LCC", "name": "PUE Rating for Facility", "emission": 1.6, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.8071, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Cloud, storage and hosting", "college": "CSM", "name": "High Specification / GPU Servers", "emission": 1.6144, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
@@ -275,7 +327,7 @@
         {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
         {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
         
-        // --- CSM: Computer New Data ---
+        // --- CSM: Computer, print and audio (恢复全量 33 条数据) ---
         {"category": "Computer, print and audio", "college": "CSM", "name": "Desktops, Thin Clients, Screens, Laptops and VOIP Phones", "emission": 0, "unit": "", "date": "2023", "notes": "Header"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 255431, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Thin Client Terminals", "emission": 0, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
@@ -310,7 +362,7 @@
         {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Energy Usage per annum", "emission": 542979, "unit": "kWh", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Estimated Total DMS Cost of Energy", "emission": 141174, "unit": "GBP", "date": "2023", "notes": "Total"},
         
-        // --- LCF ---
+        // --- LCF: Computer, print and audio ---
         {"category": "Computer, print and audio", "college": "LCF", "name": "Standard Desktop PC", "emission": 404522, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "LCF", "name": "Non-Standard PCs", "emission": 413606, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "LCF", "name": "Screens", "emission": 247758, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
@@ -333,7 +385,7 @@
         {"category": "Computer, print and audio", "college": "LCF", "name": "Total Estimated Energy Usage", "emission": 1192509, "unit": "kWh", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "LCF", "name": "Estimated Total DMS Cost", "emission": 310052, "unit": "GBP", "date": "2023", "notes": "Total"},
 
-        // --- LCC ---
+        // --- LCC: Computer, print and audio ---
         {"category": "Computer, print and audio", "college": "LCC", "name": "Standard Desktop PC", "emission": 359634, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "LCC", "name": "Non-Standard PCs", "emission": 193444, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "LCC", "name": "Screens", "emission": 187496, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
@@ -356,7 +408,7 @@
         {"category": "Computer, print and audio", "college": "LCC", "name": "Total Estimated Energy Usage", "emission": 829125, "unit": "kWh", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "LCC", "name": "Estimated Total DMS Cost", "emission": 215573, "unit": "GBP", "date": "2023", "notes": "Total"},
 
-        // --- CCW ---
+        // --- CCW: Computer, print and audio ---
         {"category": "Computer, print and audio", "college": "CCW", "name": "Standard Desktop PC", "emission": 270394, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "CCW", "name": "Non-Standard PCs", "emission": 0, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "CCW", "name": "Screens", "emission": 146656, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
@@ -380,7 +432,21 @@
         {"category": "Computer, print and audio", "college": "CCW", "name": "Estimated Total DMS Cost", "emission": 134526, "unit": "GBP", "date": "2023", "notes": "Total"}
     ];
 
-    // 📷 18种纯手工绘制的矢量线稿 (SVG)
+    // [新增] 独立的垃圾数据
+    const WASTE_DATA = [
+        { label: "General Non-Hazardous", value: 532.93 },
+        { label: "Dry Mixed Recycling", value: 128.76 },
+        { label: "General Waste (Dry)", value: 74.36 },
+        { label: "Food Processing", value: 53.89 },
+        { label: "Sanitary Waste", value: 49.40 },
+        { label: "General Waste (Wet)", value: 22.46 },
+        { label: "Confidential Paper", value: 15.84 },
+        { label: "Kitchen Waste", value: 15.05 },
+        { label: "Glass", value: 9.12 },
+        { label: "WEEE Directive Waste (E-waste)", value: 0.05, anomaly: true }
+    ];
+
+    // SVG 图像 - 恢复全部 18 种
     const IMAGES = {
         email: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='10' y='30' width='80' height='50' fill='none' stroke='black' stroke-width='2'/><path d='M10,30 L50,60 L90,30' fill='none' stroke='black' stroke-width='2'/></svg>`,
         apple: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M30,30 Q15,30 15,50 Q15,80 40,90 Q50,95 60,90 Q85,80 85,50 Q85,30 70,30 Q60,30 50,40 Q40,30 30,30' fill='none' stroke='black' stroke-width='2'/><path d='M50,40 Q50,20 60,10' fill='none' stroke='black' stroke-width='2'/></svg>`,
@@ -409,7 +475,7 @@
         `<svg viewBox="0 0 50 50"><ellipse cx="25" cy="25" rx="15" ry="12" fill="none"/><path d="M25,13 L25,5" stroke="#000"/></svg>`
     ];
 
-    // 1. Bio-Indicator: Recursive Wither Tree & Stacking Leaves
+    // 1. Tree System (保持不变)
     const treeSys = {
         svg: document.getElementById('tree-svg'),
         canvas: document.getElementById('leaf-canvas'),
@@ -417,9 +483,9 @@
         pileCanvas: document.getElementById('pile-canvas'),
         pileCtx: document.getElementById('pile-canvas').getContext('2d'),
         leaves: [],
-        groundLevels: [], // 记录地面堆积高度
+        groundLevels: [], 
         width: 0, height: 0,
-        columnSize: 5, // 堆积精度
+        columnSize: 5, 
         
         init: function() {
             this.resize();
@@ -439,35 +505,23 @@
             this.groundLevels = new Float32Array(Math.ceil(this.width / this.columnSize));
         },
 
-        // 递归生成树
         drawTree: function(health) {
             this.svg.innerHTML = '';
-            
-            // 树的位置：屏幕左侧 1/3 处
             const startX = this.width * 0.3; 
             const startY = this.height;
-            
-            // 树的高度：顶到屏幕顶部
             const trunkLen = this.height * 0.4;
-            
             const angleVar = 30 * health + (1 - health) * 120; 
-            
             let pathString = "";
             const generateBranch = (x, y, len, ang, depth) => {
                 if (depth === 0) return;
-                
                 const x2 = x + len * Math.cos((ang - 90) * Math.PI / 180);
                 const y2 = y + len * Math.sin((ang - 90) * Math.PI / 180);
-                
                 pathString += `M${x},${y} L${x2},${y2} `;
-                
                 const subLen = len * 0.75;
                 generateBranch(x2, y2, subLen, ang - angleVar, depth - 1);
                 generateBranch(x2, y2, subLen, ang + angleVar, depth - 1);
             };
-
             generateBranch(startX, startY, trunkLen, 90, 10); 
-            
             const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
             path.setAttribute("d", pathString);
             path.setAttribute("fill", "none");
@@ -477,18 +531,13 @@
             this.svg.appendChild(path);
         },
 
-        // 生成树叶
         spawnLeaf: function(rate) {
             if (Math.random() < rate) {
                 this.leaves.push({
-                    x: Math.random() * this.width,
-                    y: -10,
-                    vx: (Math.random() - 0.5) * 3,
-                    vy: 2 + Math.random() * 4, 
-                    size: 4 + Math.random() * 6,
-                    rot: Math.random() * 360,
-                    vRot: (Math.random() - 0.5) * 10,
-                    sway: Math.random() * 0.1,
+                    x: Math.random() * this.width, y: -10,
+                    vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, 
+                    size: 4 + Math.random() * 6, rot: Math.random() * 360,
+                    vRot: (Math.random() - 0.5) * 10, sway: Math.random() * 0.1,
                     color: `rgba(0,0,0,${0.5 + Math.random()*0.5})` 
                 });
             }
@@ -496,7 +545,6 @@
 
         loop: function() {
             this.ctx.clearRect(0, 0, this.width, this.height);
-            
             for (let i = this.leaves.length - 1; i >= 0; i--) {
                 let l = this.leaves[i];
                 l.x += l.vx + Math.sin(l.y * 0.01) * l.sway * 20; 
@@ -506,7 +554,6 @@
                 let col = Math.floor(l.x / this.columnSize);
                 if (col >= 0 && col < this.groundLevels.length) {
                     let groundY = this.height - this.groundLevels[col];
-                    
                     if (l.y >= groundY) {
                         this.pileCtx.save();
                         this.pileCtx.translate(l.x, groundY); 
@@ -514,11 +561,9 @@
                         this.pileCtx.fillStyle = l.color;
                         this.drawLeafShape(this.pileCtx, l.size);
                         this.pileCtx.restore();
-                        
                         this.groundLevels[col] += l.size * 0.4; 
                         if(col > 0) this.groundLevels[col-1] += l.size * 0.1;
                         if(col < this.groundLevels.length-1) this.groundLevels[col+1] += l.size * 0.1;
-
                         this.leaves.splice(i, 1);
                         continue; 
                     }
@@ -543,7 +588,7 @@
         }
     };
 
-    // 2. Audio System
+    // 2. Audio System (保持不变)
     const audioSys = {
         ctx: null, droneOsc: null, gainNode: null,
         init: function() { if(!this.ctx) this.ctx = new (window.AudioContext||window.webkitAudioContext)(); },
@@ -575,31 +620,61 @@
         }
     };
 
-    // 3. Hover Card Controller
+    // 3. Hover Card Controller - 恢复逻辑，根据排放量显示不同物品
     const hoverCard = {
         el: document.getElementById('hover-card'), img: document.getElementById('card-img'),
         valText: document.getElementById('card-val'), descText: document.getElementById('card-desc'),
         
         show: function(val, e) {
             let options = [];
+            
+            // 根据排放数值 (val) 决定显示什么物品
             if (val < 0.001) {
-                options = [{type:'email', factor:0.000004, label:'Emails Sent'}, {type:'apple', factor:0.00005, label:'Apples Produced'}, {type:'banana', factor:0.00008, label:'Bananas Produced'}];
+                options = [
+                    {type:'email', factor:0.000004, label:'Emails Sent'}, 
+                    {type:'apple', factor:0.00005, label:'Apples Produced'}, 
+                    {type:'banana', factor:0.00008, label:'Bananas Produced'}
+                ];
             } else if (val < 0.05) {
-                options = [{type:'plastic_bottle', factor:0.00008, label:'Plastic Bottles'}, {type:'coffee', factor:0.0002, label:'Cups of Coffee'}, {type:'toothpaste', factor:0.0005, label:'Tubes of Toothpaste'}, {type:'kettle', factor:0.015, label:'Kettles Boiled'}];
+                options = [
+                    {type:'plastic_bottle', factor:0.00008, label:'Plastic Bottles'}, 
+                    {type:'coffee', factor:0.0002, label:'Cups of Coffee'}, 
+                    {type:'toothpaste', factor:0.0005, label:'Tubes of Toothpaste'}, 
+                    {type:'kettle', factor:0.015, label:'Kettles Boiled'}
+                ];
             } else if (val < 0.5) {
-                options = [{type:'burger', factor:0.004, label:'Beef Burgers'}, {type:'tshirt', factor:0.007, label:'Cotton T-Shirts'}, {type:'sneakers', factor:0.014, label:'Pairs of Sneakers'}, {type:'tree', factor:0.025, label:'Trees (Yearly Absorption)'}, {type:'jeans', factor:0.033, label:'Pairs of Jeans'}];
+                options = [
+                    {type:'burger', factor:0.004, label:'Beef Burgers'}, 
+                    {type:'tshirt', factor:0.007, label:'Cotton T-Shirts'}, 
+                    {type:'sneakers', factor:0.014, label:'Pairs of Sneakers'}, 
+                    {type:'tree', factor:0.025, label:'Trees (Yearly Absorption)'}, 
+                    {type:'jeans', factor:0.033, label:'Pairs of Jeans'}
+                ];
             } else if (val < 2.0) {
-                options = [{type:'smartphone', factor:0.06, label:'Smartphones Produced'}, {type:'steak', factor:0.07, label:'Steak Dinners'}, {type:'washing_machine', factor:0.1, label:'Washing Cycles (Hot)'}, {type:'laptop', factor:0.3, label:'Laptops Produced'}];
+                options = [
+                    {type:'smartphone', factor:0.06, label:'Smartphones Produced'}, 
+                    {type:'steak', factor:0.07, label:'Steak Dinners'}, 
+                    {type:'washing_machine', factor:0.1, label:'Washing Cycles (Hot)'}, 
+                    {type:'laptop', factor:0.3, label:'Laptops Produced'}
+                ];
             } else {
-                options = [{type:'car', factor:0.17, label:'km Driven in Diesel Car'}, {type:'plane', factor:0.9, label:'Flights LHR-NYC'}];
+                options = [
+                    {type:'car', factor:0.17, label:'km Driven in Diesel Car'}, 
+                    {type:'plane', factor:0.9, label:'Flights LHR-NYC'}
+                ];
             }
 
             const choice = options[Math.floor(Math.random() * options.length)];
             let count = 0;
             if(choice.type === 'car') count = Math.ceil(val / 0.00017); 
-            else { count = (val / choice.factor).toFixed(1); if (count > 100) count = Math.ceil(count); }
+            else { 
+                count = (val / choice.factor).toFixed(1); 
+                if (count > 100) count = Math.ceil(count); 
+            }
 
-            this.img.src = IMAGES[choice.type]; 
+            // 安全检查，确保图片存在
+            this.img.src = IMAGES[choice.type] || IMAGES['email']; 
+            
             this.valText.textContent=`${val.toFixed(4)} tCO₂e`;
             this.descText.textContent=`≈ ${count} ${choice.label}`; 
             this.el.classList.add('visible'); 
@@ -614,35 +689,26 @@
         }
     };
 
-    // 4. Energy Tracker & Simulation Logic
+    // 4. Energy Tracker (保持不变)
     class EnergyTracker {
         constructor() { this.j=0; this.last=Date.now(); this.trash=0; this.health = 1.0; this.loop(); }
-        
         loop() {
             setInterval(()=>{
                 let now=Date.now(), dt=(now-this.last)/1000; this.last=now;
-                this.add(1.5*dt); // Base power consumption
-                
-                // --- BIO-INDICATOR UPDATE ---
+                this.add(1.5*dt); 
                 if (state.mode === 'chaos') {
                     const MAX_TOLERANCE = 300; 
                     this.health = Math.max(0, 1 - (this.j / MAX_TOLERANCE));
-                    
                     treeSys.drawTree(this.health);
-                    
                     const fallRate = 0.02 + (1 - this.health) * 0.9;
                     treeSys.spawnLeaf(fallRate);
-                    
                     document.getElementById('trash-count-label').textContent = `Energy Waste: ${this.trash} | Tree Vitality: ${(this.health*100).toFixed(0)}%`;
                 }
-                
                 if(this.getCarbon()/0.05 > this.trash) { this.spawnTrash(); this.trash++; }
             },100);
         }
-        
         add(v) { this.j+=v; document.getElementById('energy-joules').textContent=this.j.toFixed(2)+' J'; document.getElementById('energy-carbon').textContent=this.getCarbon().toFixed(4)+' gCO₂e'; }
         getCarbon() { return this.j*0.00015; }
-        
         spawnTrash() {
             if(state.mode!=='chaos') return;
             const d=document.createElement('div'); d.className='trash-item';
@@ -655,23 +721,24 @@
         }
     }
     
-    // 5. Main App Logic
-    const state = { mode: 'order', category: null, college: null, search: "" };
+    // 5. App Logic (包含新增的 Waste View 逻辑)
+    const state = { mode: 'order', category: null, college: null, search: "", view: 'standard' };
     const dom = {
         navTree: document.getElementById('nav-tree'), dataList: document.getElementById('data-list'),
         header: document.getElementById('content-header-wrapper'), empty: document.getElementById('empty-state'),
-        search: document.getElementById('search-input'), toggle: document.getElementById('mode-toggle')
+        search: document.getElementById('search-input'), toggle: document.getElementById('mode-toggle'),
+        stdHeader: document.getElementById('std-header')
     };
 
     function init() {
         treeSys.init(); 
         const energy = new EnergyTracker();
 
+        // 动态生成侧边栏导航
         const cats=[...new Set(RAW_DATA.map(d=>d.category))], cols=["CSM","LCF","LCC","CCW"];
         dom.navTree.innerHTML='';
         cats.forEach(c=>{
             const div=document.createElement('div'); div.className='acc-item';
-            const count = RAW_DATA.filter(d=>d.category===c && d.emission > 0).length;
             div.innerHTML=`<div class="acc-header" onclick="this.parentNode.classList.toggle('open')"><span>${c}</span><span>+</span></div><div class="acc-body"></div>`;
             const body=div.querySelector('.acc-body');
             cols.forEach(col=>{
@@ -684,9 +751,10 @@
             dom.navTree.appendChild(div);
         });
 
-        dom.search.addEventListener('input', e=>{ state.search=e.target.value.toLowerCase(); if(state.category) render(); });
+        dom.search.addEventListener('input', e=>{ state.search=e.target.value.toLowerCase(); if(state.view === 'standard' && state.category) render(); });
         dom.toggle.addEventListener('click', toggleMode);
         
+        // 交互模拟能量增加
         window.addEventListener('mousemove', ()=>{ if(Math.random()>0.8) energy.add(0.05); });
         window.addEventListener('click', ()=>{ energy.add(0.2); });
         document.getElementById('scroll-container').addEventListener('scroll', ()=>{ energy.add(0.5); });
@@ -694,12 +762,70 @@
         initNoise();
     }
 
-    function load(c, col) { state.category=c; state.college=col; dom.empty.style.display='none'; render(); }
+    // [新增] 加载 Waste View
+    window.loadWasteData = function() {
+        state.view = 'waste';
+        dom.empty.style.display = 'none';
+        dom.stdHeader.style.display = 'none'; // 隐藏标准表头
+        
+        // 重置头部
+        dom.header.innerHTML = `
+            <div>
+                <div style="font-size:11px;color:#666;">UAL / SCOPE 3</div>
+                <div style="font-size:24px; font-weight:bold;">WASTE AUDIT 24/25</div>
+            </div>
+            <div class="stats-grid" style="grid-template-columns: 1fr;">
+                <div class="stat-box" style="text-align:right;">
+                    <span>TOTAL WASTE</span> <strong>908.48 Tonnes</strong>
+                </div>
+            </div>
+        `;
+
+        dom.dataList.innerHTML = '<div class="waste-container"></div>';
+        const container = dom.dataList.querySelector('.waste-container');
+
+        // 渲染黑白条形图
+        WASTE_DATA.forEach((d, index) => {
+            const row = document.createElement('div');
+            row.className = `waste-row ${d.anomaly ? 'anomaly' : ''}`;
+            row.style.animationDelay = `${index * 0.1}s`;
+            
+            // 计算宽度 (以 550 为最大值归一化)
+            const widthPct = (d.value / 550) * 100;
+            const displayWidth = d.anomaly ? 0.2 : widthPct; 
+
+            row.innerHTML = `
+                <div class="waste-label">${d.label}</div>
+                <div class="waste-bar-bg">
+                    <div class="waste-bar" style="width:${displayWidth}%"></div>
+                </div>
+                <div class="waste-val">${d.value.toFixed(2)}${d.anomaly ? '*' : ''}</div>
+            `;
+            
+            if(d.anomaly) {
+                row.addEventListener('mouseenter', () => audioSys.playGlitch());
+            }
+
+            container.appendChild(row);
+        });
+
+        // 取消侧边栏其他高亮
+        document.querySelectorAll('.college-item').forEach(x=>x.classList.remove('active'));
+    };
+
+    function load(c, col) { 
+        state.view = 'standard';
+        state.category=c; state.college=col; 
+        dom.empty.style.display='none'; 
+        dom.stdHeader.style.display = 'grid'; // 恢复标准表头
+        render(); 
+    }
 
     function render() {
         let d=RAW_DATA.filter(x=>x.category===state.category&&x.college===state.college);
         if(state.search) d=d.filter(x=>x.name.toLowerCase().includes(state.search));
         
+        // 计算总排放 (过滤掉 header 和总计行，只算具体项目)
         const t=d.filter(x => x.unit === "tCO2e" && x.name.indexOf("Total") === -1).reduce((a,b)=>a+b.emission,0);
         
         dom.header.innerHTML=`<div><div style="font-size:11px;color:#666;">${state.category}/${state.college}</div><div style="font-size:24px">Emission Report</div></div>
@@ -714,13 +840,20 @@
             const isHeader = x.notes === "Header";
             const style = isHeader ? "color:#999;font-style:italic;" : "";
             
+            // 如果是Header，不需要数值列
+            if(isHeader) valDisplay = "";
+
             row.innerHTML=`<div style="font-weight:500;${style}">${x.name}</div><div class="cell-emission" style="${style}">${valDisplay}</div><div>${x.date}</div><div style="color:#666;font-style:italic">${x.notes}</div>`;
             
+            // 添加鼠标悬停事件
             row.addEventListener('mouseenter', e=>{ 
-                if(state.mode!=='chaos' && x.emission > 0) {
+                // 只有非 chaos 模式且有数值时才显示悬浮卡片
+                if(state.mode!=='chaos' && x.emission > 0 && !isHeader) {
                     let calcVal = x.emission;
+                    // 简单的单位转换估算
                     if(x.unit === 'kWh') calcVal = x.emission * 0.000193; 
                     if(x.unit === 'GBP') calcVal = x.emission * 0.0002; 
+                    
                     hoverCard.show(calcVal, e); 
                     audioSys.playClick(); 
                 } 
@@ -739,7 +872,9 @@
         if(state.mode==='order') {
             state.mode='chaos'; document.body.classList.add('mode-chaos');
             document.getElementById('mode-text').textContent="Return to Order";
-            hoverCard.hide(); randomizeRows(); audioSys.startDrone();
+            hoverCard.hide(); 
+            if(state.view === 'standard') randomizeRows(); 
+            audioSys.startDrone();
         } else {
             state.mode='order'; document.body.classList.remove('mode-chaos');
             document.getElementById('mode-text').textContent="Enter Landfill";
