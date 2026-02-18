@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carbon Archive: Infinite Ash</title>
+    <title>Carbon Archive: The Infinite Tree</title>
     <style>
         /* --- 1. 基础视觉设置 --- */
         :root {
@@ -320,6 +320,10 @@
         {"category": "Cloud, storage and hosting", "college": "LCC", "name": "High Specification / GPU Servers", "emission": 0.8071, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Cloud, storage and hosting", "college": "LCF", "name": "High Specification / GPU Servers", "emission": 2.8251, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
         {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 1.2848, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
+        {"category": "Cloud, storage and hosting", "college": "LCC", "name": "HDD", "emission": 8.8801, "unit": "tCO2e", "date": "2023", "notes": "Operational"},
+        {"category": "Cloud, storage and hosting", "college": "LCC", "name": "Data Storage Servers", "emission": 2.72, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
+        {"category": "Cloud, storage and hosting", "college": "CSM", "name": "Data Storage Servers", "emission": 1.84, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
+        {"category": "Cloud, storage and hosting", "college": "LCF", "name": "Data Storage Servers", "emission": 1.25, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
         
         // --- CSM: Computer, print and audio ---
         {"category": "Computer, print and audio", "college": "CSM", "name": "Standard Desktop PC", "emission": 255431, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
@@ -332,10 +336,15 @@
         {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Carbon Impact Energy Usage", "emission": 92.49, "unit": "tCO2e", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones", "emission": 865, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Tablets", "emission": 3649, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Related Energy Usage", "emission": 4514, "unit": "kWh", "date": "2023", "notes": "Total"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Carbon Impact", "emission": 0.82, "unit": "tCO2e", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Laserjet Printers", "emission": 23410, "unit": "kWh", "date": "2023", "notes": "Power Usage"},
-        {"category": "Computer, print and audio", "college": "CSM", "name": "Total Carbon Impact (Printers)", "emission": 4.24, "unit": "tCO2e", "date": "2023", "notes": "Total"},
-        {"category": "Computer, print and audio", "college": "CSM", "name": "Desktops Embodied Carbon", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
-        {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones Embodied Carbon", "emission": 15.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Related Energy Usage", "emission": 23410, "unit": "kWh", "date": "2023", "notes": "Total"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Carbon Impact", "emission": 4.24, "unit": "tCO2e", "date": "2023", "notes": "Total"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Desktops, Thin Clients, Screens, Laptops", "emission": 139.27, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Smartphones & Tablets", "emission": 15.21, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Printers", "emission": 2.06, "unit": "tCO2e", "date": "2023", "notes": "Embodied"},
+        {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Embodied Carbon Emissions", "emission": 156.54, "unit": "tCO2e", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Total DMS Annualised Carbon Impact", "emission": 291.62, "unit": "tCO2e", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Total Estimated Energy Usage per annum", "emission": 542979, "unit": "kWh", "date": "2023", "notes": "Total"},
         {"category": "Computer, print and audio", "college": "CSM", "name": "Estimated Total DMS Cost of Energy", "emission": 141174, "unit": "GBP", "date": "2023", "notes": "Total"},
@@ -410,7 +419,6 @@
         {"category": "Computer, print and audio", "college": "CCW", "name": "Estimated Total DMS Cost", "emission": 134526, "unit": "GBP", "date": "2023", "notes": "Total"}
     ];
 
-    // [新增] 独立的垃圾数据
     const WASTE_DATA = [
         { label: "General Non-Hazardous", value: 532.93 },
         { label: "Dry Mixed Recycling", value: 128.76 },
@@ -424,7 +432,6 @@
         { label: "WEEE Directive Waste (E-waste)", value: 0.05, anomaly: true }
     ];
 
-    // SVG 图像 - 恢复全部 18 种
     const IMAGES = {
         email: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect x='10' y='30' width='80' height='50' fill='none' stroke='black' stroke-width='2'/><path d='M10,30 L50,60 L90,30' fill='none' stroke='black' stroke-width='2'/></svg>`,
         apple: `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><path d='M30,30 Q15,30 15,50 Q15,80 40,90 Q50,95 60,90 Q85,80 85,50 Q85,30 70,30 Q60,30 50,40 Q40,30 30,30' fill='none' stroke='black' stroke-width='2'/><path d='M50,40 Q50,20 60,10' fill='none' stroke='black' stroke-width='2'/></svg>`,
@@ -453,7 +460,7 @@
         `<svg viewBox="0 0 50 50"><ellipse cx="25" cy="25" rx="15" ry="12" fill="none"/><path d="M25,13 L25,5" stroke="#000"/></svg>`
     ];
 
-    // 1. Tree System (Optimized for "Digital Ash" & Fast Piling)
+    // 1. Tree System (保持不变)
     const treeSys = {
         svg: document.getElementById('tree-svg'),
         canvas: document.getElementById('leaf-canvas'),
@@ -463,7 +470,7 @@
         leaves: [],
         groundLevels: [], 
         width: 0, height: 0,
-        columnSize: 2, // [Optimized] Higher resolution pile (smaller columns)
+        columnSize: 5, 
         
         init: function() {
             this.resize();
@@ -509,64 +516,60 @@
             this.svg.appendChild(path);
         },
 
-        // [Optimized] Spawn small, fast particles
         spawnLeaf: function(rate) {
-            // Rate is ignored here, called in a loop by EnergyTracker for density
-            this.leaves.push({
-                x: Math.random() * this.width, 
-                y: -10,
-                vx: (Math.random() - 0.5) * 5, // Wider drift
-                vy: 5 + Math.random() * 8,     // [Optimized] Much faster fall speed
-                size: 1.5 + Math.random() * 3, // [Optimized] Smaller "ash" size (1.5px - 4.5px)
-                color: `rgba(0,0,0,${0.6 + Math.random()*0.4})` // Darker ash
-            });
+            if (Math.random() < rate) {
+                this.leaves.push({
+                    x: Math.random() * this.width, y: -10,
+                    vx: (Math.random() - 0.5) * 3, vy: 2 + Math.random() * 4, 
+                    size: 4 + Math.random() * 6, rot: Math.random() * 360,
+                    vRot: (Math.random() - 0.5) * 10, sway: Math.random() * 0.1,
+                    color: `rgba(0,0,0,${0.5 + Math.random()*0.5})` 
+                });
+            }
         },
 
         loop: function() {
             this.ctx.clearRect(0, 0, this.width, this.height);
-            
-            // Use fillRect for performance with many particles
-            this.ctx.fillStyle = '#000'; 
-
             for (let i = this.leaves.length - 1; i >= 0; i--) {
                 let l = this.leaves[i];
-                l.x += l.vx; 
+                l.x += l.vx + Math.sin(l.y * 0.01) * l.sway * 20; 
                 l.y += l.vy;
+                l.rot += l.vRot;
                 
-                // Jitter movement (Ash-like)
-                l.x += (Math.random() - 0.5) * 2;
-
                 let col = Math.floor(l.x / this.columnSize);
-                
-                // Collision with ground/pile
                 if (col >= 0 && col < this.groundLevels.length) {
                     let groundY = this.height - this.groundLevels[col];
                     if (l.y >= groundY) {
-                        // Draw to pile canvas (permanent)
+                        this.pileCtx.save();
+                        this.pileCtx.translate(l.x, groundY); 
+                        this.pileCtx.rotate(l.rot * Math.PI / 180);
                         this.pileCtx.fillStyle = l.color;
-                        this.pileCtx.fillRect(l.x, groundY, l.size, l.size); // Simple rect for pile
-                        
-                        // Increase pile height
-                        this.groundLevels[col] += l.size * 0.8; // [Optimized] Fast accumulation
-                        // Spread to neighbors for smoother pile
-                        if(col > 0) this.groundLevels[col-1] += l.size * 0.2;
-                        if(col < this.groundLevels.length-1) this.groundLevels[col+1] += l.size * 0.2;
-                        
+                        this.drawLeafShape(this.pileCtx, l.size);
+                        this.pileCtx.restore();
+                        this.groundLevels[col] += l.size * 0.4; 
+                        if(col > 0) this.groundLevels[col-1] += l.size * 0.1;
+                        if(col < this.groundLevels.length-1) this.groundLevels[col+1] += l.size * 0.1;
                         this.leaves.splice(i, 1);
                         continue; 
                     }
                 }
 
-                // Draw falling leaf (diamond shape for elegance)
+                this.ctx.save();
+                this.ctx.translate(l.x, l.y);
+                this.ctx.rotate(l.rot * Math.PI / 180);
                 this.ctx.fillStyle = l.color;
-                this.ctx.beginPath();
-                this.ctx.moveTo(l.x, l.y - l.size);
-                this.ctx.lineTo(l.x + l.size/2, l.y);
-                this.ctx.lineTo(l.x, l.y + l.size);
-                this.ctx.lineTo(l.x - l.size/2, l.y);
-                this.ctx.fill();
+                this.drawLeafShape(this.ctx, l.size);
+                this.ctx.restore();
             }
             requestAnimationFrame(() => this.loop());
+        },
+        
+        drawLeafShape: function(ctx, size) {
+            ctx.beginPath();
+            ctx.moveTo(0, -size);
+            ctx.quadraticCurveTo(size, 0, 0, size);
+            ctx.quadraticCurveTo(-size, 0, 0, -size);
+            ctx.fill();
         }
     };
 
@@ -645,7 +648,7 @@
         }
     };
 
-    // 4. Energy Tracker (Modified for High Density Spawn)
+    // 4. Energy Tracker (保持不变)
     class EnergyTracker {
         constructor() { this.j=0; this.last=Date.now(); this.trash=0; this.health = 1.0; this.loop(); }
         loop() {
@@ -656,14 +659,8 @@
                     const MAX_TOLERANCE = 300; 
                     this.health = Math.max(0, 1 - (this.j / MAX_TOLERANCE));
                     treeSys.drawTree(this.health);
-                    
-                    // [Optimized] Spawn MULTIPLE leaves per tick for high density
-                    // Previously: treeSys.spawnLeaf(fallRate); (once)
-                    // Now: Loop 5-10 times
-                    for(let i=0; i<8; i++) {
-                        treeSys.spawnLeaf(1); 
-                    }
-
+                    const fallRate = 0.02 + (1 - this.health) * 0.9;
+                    treeSys.spawnLeaf(fallRate);
                     document.getElementById('trash-count-label').textContent = `Energy Waste: ${this.trash} | Tree Vitality: ${(this.health*100).toFixed(0)}%`;
                 }
                 if(this.getCarbon()/0.05 > this.trash) { this.spawnTrash(); this.trash++; }
@@ -683,17 +680,17 @@
         }
     }
     
-    // 5. App Logic (Infinite Scroll Logic Retained)
+    // 5. App Logic (加入 Infinite Scroll)
     const state = { mode: 'order', category: null, college: null, search: "", view: 'standard' };
     const dom = {
         navTree: document.getElementById('nav-tree'), dataList: document.getElementById('data-list'),
-        scrollContainer: document.getElementById('scroll-container'), 
+        scrollContainer: document.getElementById('scroll-container'), // [NEW] 引用滚动容器
         header: document.getElementById('content-header-wrapper'), empty: document.getElementById('empty-state'),
         search: document.getElementById('search-input'), toggle: document.getElementById('mode-toggle'),
         stdHeader: document.getElementById('std-header')
     };
 
-    // 存储当前展示的数据子集，用于无限滚动复制
+    // [NEW] 存储当前展示的数据子集，用于无限滚动复制
     let currentDisplayData = []; 
 
     function init() {
@@ -723,7 +720,7 @@
         window.addEventListener('mousemove', ()=>{ if(Math.random()>0.8) energy.add(0.05); });
         window.addEventListener('click', ()=>{ energy.add(0.2); });
         
-        // 滚动监听器：模拟无限数据
+        // [NEW] 滚动监听器：模拟无限数据
         dom.scrollContainer.addEventListener('scroll', ()=>{ 
             energy.add(0.5); 
             // 如果接近底部
@@ -735,7 +732,7 @@
         initNoise();
     }
 
-    // 无限追加数据函数
+    // [NEW] 无限追加数据函数
     function appendInfiniteData() {
         // 只有在标准视图且有数据时才追加
         if (state.view !== 'standard' || currentDisplayData.length === 0) return;
@@ -764,7 +761,7 @@
         });
     }
 
-    // 封装创建行的逻辑，方便复用
+    // [NEW] 封装创建行的逻辑，方便复用
     function createDataRow(x) {
         const row=document.createElement('div'); row.className='data-row';
         let valDisplay = x.emission.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4});
@@ -790,7 +787,7 @@
         return row;
     }
 
-    // 加载 Waste View
+    // [NEW] 加载 Waste View
     window.loadWasteData = function() {
         state.view = 'waste';
         dom.empty.style.display = 'none';
@@ -849,7 +846,7 @@
         let d=RAW_DATA.filter(x=>x.category===state.category&&x.college===state.college);
         if(state.search) d=d.filter(x=>x.name.toLowerCase().includes(state.search));
         
-        currentDisplayData = d; // 保存用于无限滚动
+        currentDisplayData = d; // [NEW] 保存用于无限滚动
 
         const t=d.filter(x => x.unit === "tCO2e" && x.name.indexOf("Total") === -1).reduce((a,b)=>a+b.emission,0);
         
